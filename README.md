@@ -113,6 +113,9 @@ Mặc định khi mới cài đặt SQL Server, Microsoft sẽ chặn quyền tr
 
 ## 📂 Cấu trúc thư mục dự án
 
+lưu ý, hiện nhớ check frontend để biết những chức năng hiện đã có 
+
+
 ```text
 📦 quan-ly-chung-cu-nncnpm
  ┣ 📂 bluemoon-backend
