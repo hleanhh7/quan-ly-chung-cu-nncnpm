@@ -101,9 +101,50 @@ CREATE TABLE InvoiceDetails (
 );
 GO
 
+-- =========================================================================
+-- CÁC BẢNG BỔ SUNG CHO TÍNH NĂNG MỚI (PHẢN ÁNH, THÔNG BÁO, TIỆN ÍCH)
+-- =========================================================================
+
+-- 10. Bảng Quản lý phản ánh, khiếu nại (Feedbacks)
+CREATE TABLE Feedbacks (
+    Feedback_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Household_ID INT NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    Status NVARCHAR(50) DEFAULT N'Chờ xử lý', -- Chờ xử lý, Đang giải quyết, Đã hoàn thành
+    Created_At DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (Household_ID) REFERENCES Households(Household_ID) ON DELETE CASCADE
+);
+GO
+
+-- 11. Bảng Thông báo truyền thông chung (Announcements)
+CREATE TABLE Announcements (
+    Announcement_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Title NVARCHAR(255) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    Created_By NVARCHAR(50) DEFAULT N'Ban Quản Lý',
+    Created_At DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- 12. Bảng Đặt lịch sử dụng tiện ích công cộng (FacilityBookings)
+CREATE TABLE FacilityBookings (
+    Booking_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Household_ID INT NOT NULL,
+    Facility_Name NVARCHAR(100) NOT NULL, -- Gym, Hồ bơi, BBQ...
+    Booking_Date DATE NOT NULL,
+    Time_Slot VARCHAR(50) NOT NULL, -- Ví dụ: 18:00 - 20:00
+    Status NVARCHAR(50) DEFAULT N'Đã xác nhận', -- Chờ xác nhận, Đã xác nhận, Đã hủy
+    FOREIGN KEY (Household_ID) REFERENCES Households(Household_ID) ON DELETE CASCADE
+);
+GO
+
+-- =========================================================================
+-- ĐOẠN LỆNH TEST (Lưu ý: Cần có dữ liệu trong bảng Households và Accounts trước khi chạy)
+-- =========================================================================
 USE BluemoonDB;
-UPDATE Accounts SET Household_ID = 1 WHERE Username = 'cudan_a101';
+GO
 
-SELECT Username, Role, Household_ID FROM Accounts WHERE Username = 'cudan_a101';
-
-UPDATE Accounts SET Household_ID = 1 WHERE Username = 'cudan_a101';
+-- UPDATE Accounts SET Household_ID = 1 WHERE Username = 'cudan_a101';
+-- SELECT Username, Role, Household_ID FROM Accounts WHERE Username = 'cudan_a101';
+-- UPDATE Accounts SET Household_ID = 1 WHERE Username = 'cudan_a101';
