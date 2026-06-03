@@ -29,6 +29,10 @@ router.get('/my-services', residentController.getMyRegisteredServices);
 // ==========================================================
 router.get('/announcements', residentController.getAnnouncements);
 router.post('/feedbacks', residentController.sendFeedback);
+// Thêm vào residentRoutes.js
+
+// Thêm dòng này vào residentRoutes.js
+router.post('/add-resident', residentController.addResident);
 
 // LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

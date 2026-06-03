@@ -51,39 +51,6 @@ async function fetchInvoices() {
 fetchInvoices();
 
 // 3. XỬ LÝ GỬI FORM KHAI BÁO
-document.getElementById('declarationForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const data = {
-        Resident_ID: document.getElementById('residentId').value,
-        Declaration_Type: document.getElementById('decType').value,
-        Start_Date: document.getElementById('startDate').value,
-        End_Date: document.getElementById('endDate').value,
-        Reason: document.getElementById('reason').value
-    };
-
-    try {
-        const response = await fetch('http://localhost:5000/api/resident/declaration', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert('Gửi khai báo thành công!');
-            document.getElementById('declarationForm').reset(); 
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
-});
 
 
 // ==================================================
@@ -196,3 +163,83 @@ document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('household_id');
     window.location.href = 'index.html';
 });
+
+// ========================================================
+// XỬ LÝ ĐẶT LỊCH TIỆN ÍCH (FACILITY BOOKING)
+// ========================================================
+
+const API_BOOKING_URL = 'http://localhost:5000/api/services/facility-bookings';
+
+// 1. Hàm load lịch sử đặt chỗ của hộ gia đình
+async function loadMyBookings() {
+    try {
+        const response = await fetch(API_BOOKING_URL, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}` // Token được kế thừa từ đầu file resident.js
+            }
+        });
+        
+        if (response.ok) {
+            const bookings = await response.json();
+            const tbody = document.getElementById('bookingList');
+            tbody.innerHTML = ''; // Xóa dữ liệu cũ
+            
+            bookings.forEach(b => {
+                // Cắt lấy phần ngày tháng năm cho đẹp (bỏ đuôi giờ loằng ngoằng)
+                const dateOnly = b.Booking_Date.split('T')[0];
+                
+                // Tô màu trạng thái
+                let statusColor = 'orange';
+                if (b.Status === 'Đã xác nhận' || b.Status === 'Approved') statusColor = 'green';
+                if (b.Status === 'Từ chối' || b.Status === 'Rejected') statusColor = 'red';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px;">${b.Facility_Name}</td>
+                        <td>${dateOnly}</td>
+                        <td>${b.Time_Slot}</td>
+                        <td style="color: ${statusColor}; font-weight: bold;">${b.Status}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Lỗi khi load lịch sử đặt chỗ:', error);
+    }
+}
+
+// 2. Bắt sự kiện khi cư dân bấm nút "Đặt lịch ngay"
+document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+    e.preventDefault(); // Ngăn trang tự reload
+    
+    const facility_name = document.getElementById('facilityName').value;
+    const booking_date = document.getElementById('bookingDate').value;
+    const time_slot = document.getElementById('timeSlot').value;
+
+    try {
+        const response = await fetch(API_BOOKING_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ facility_name, booking_date, time_slot })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('🎉 Đặt lịch thành công! Vui lòng chờ BQL xác nhận.');
+            loadMyBookings(); // Tải lại bảng ngay lập tức để thấy đơn vừa đặt
+        } else {
+            alert('❌ Lỗi: ' + data.message); // Báo lỗi nếu trùng lịch
+        }
+    } catch (error) {
+        console.error('Lỗi khi gửi yêu cầu đặt lịch:', error);
+        alert('Không thể kết nối với máy chủ!');
+    }
+});
+
+// 3. Gọi hàm load bảng lịch sử ngay khi trang vừa tải xong
+loadMyBookings();

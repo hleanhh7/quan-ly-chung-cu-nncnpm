@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khai báo Tạm trú / Tạm vắng - Bluemoon</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h3 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-submit { background: #2ecc71; color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; }
+        .btn-submit:hover { background: #27ae60; }
+        .btn-back { display: inline-block; margin-bottom: 15px; color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <a href="resident_dashboard.html" class="btn-back">← Quay lại Dashboard</a>
+        <h3>📝 Khai báo Tạm trú / Tạm vắng trực tuyến</h3>
+        <form id="declarationForm">
+            <div class="form-group">
+                <label>Mã Nhân khẩu (Resident ID của bạn)</label>
+                <input type="number" id="residentId" placeholder="Ví dụ: 1, 2, 3..." required>
+            </div>
+            <div class="form-group">
+                <label>Loại khai báo</label>
+                <select id="decType" required>
+                    <option value="TamTru">Tạm trú</option>
+                    <option value="TamVang">Tạm vắng</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Từ ngày</label>
+                <input type="date" id="startDate" required>
+            </div>
+            <div class="form-group">
+                <label>Đến ngày</label>
+                <input type="date" id="endDate" required>
+            </div>
+            <div class="form-group">
+                <label>Lý do</label>
+                <input type="text" id="reason" placeholder="Ví dụ: Đi học quân sự, công tác, về quê..." required>
+            </div>
+            <button type="submit" class="btn-submit">Gửi khai báo lên BQL</button>
+        </form>
+    </div>
+
+    <script src="declaration.js"></script>
+</body>
+</html>

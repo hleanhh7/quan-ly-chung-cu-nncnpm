@@ -107,10 +107,107 @@ const cancelService = async (req, res) => {
     }
 };
 
+// ========================================================
+// NHÓM 2: QUẢN LÝ ĐẶT LỊCH TIỆN ÍCH (FacilityBookings)
+// ========================================================
+
+const bookFacility = async (req, res) => {
+    try {
+        const householdId = req.user.householdId; 
+        const { facility_name, booking_date, time_slot } = req.body;
+
+        if (!facility_name || !booking_date || !time_slot) {
+            return res.status(400).json({ message: 'Vui lòng nhập đầy đủ ngày và khung giờ đặt!' });
+        }
+
+        // Kiểm tra xem khung giờ này, ngày này, tại tiện ích này đã có ai đặt chưa
+        const checkReq = new sql.Request();
+        const checkConflict = await checkReq
+            .input('Facility_Name', sql.NVarChar, facility_name)
+            .input('Booking_Date', sql.Date, booking_date)
+            .input('Time_Slot', sql.VarChar, time_slot)
+            .query(`
+                SELECT * FROM FacilityBookings 
+                WHERE Facility_Name = @Facility_Name 
+                AND Booking_Date = @Booking_Date
+                AND Time_Slot = @Time_Slot
+                AND Status IN (N'Chờ xác nhận', N'Đã xác nhận')
+            `);
+
+        if (checkConflict.recordset.length > 0) {
+            return res.status(400).json({ message: 'Khung giờ này đã có người đặt, vui lòng chọn giờ khác!' });
+        }
+
+        const insertReq = new sql.Request();
+        await insertReq
+            .input('Household_ID', sql.Int, householdId)
+            .input('Facility_Name', sql.NVarChar, facility_name)
+            .input('Booking_Date', sql.Date, booking_date)
+            .input('Time_Slot', sql.VarChar, time_slot)
+            .query(`
+                INSERT INTO FacilityBookings (Household_ID, Facility_Name, Booking_Date, Time_Slot)
+                VALUES (@Household_ID, @Facility_Name, @Booking_Date, @Time_Slot)
+            `);
+
+        res.status(201).json({ message: 'Đặt lịch thành công, đang chờ BQL xác nhận!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const getFacilityBookings = async (req, res) => {
+    try {
+        const role = req.user.role;
+        const householdId = req.user.householdId;
+        const request = new sql.Request();
+
+        let query = `
+            SELECT b.*, h.Room_Number 
+            FROM FacilityBookings b
+            JOIN Households h ON b.Household_ID = h.Household_ID
+        `;
+
+        if (role === 'Resident') {
+            query += ` WHERE b.Household_ID = @Household_ID`;
+            request.input('Household_ID', sql.Int, householdId);
+        }
+
+        query += ` ORDER BY b.Booking_Date DESC`;
+
+        const result = await request.query(query);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const updateFacilityBookingStatus = async (req, res) => {
+    try {
+        const { booking_id } = req.params;
+        const { status } = req.body; 
+
+        const request = new sql.Request();
+        await request
+            .input('Booking_ID', sql.Int, booking_id)
+            .input('Status', sql.NVarChar, status)
+            .query(`UPDATE FacilityBookings SET Status = @Status WHERE Booking_ID = @Booking_ID`);
+
+        res.status(200).json({ message: `Đã cập nhật trạng thái thành: ${status}` });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// Nhớ xuất (export) 3 hàm này nhé
+// module.exports = { ..., bookFacility, getFacilityBookings, updateFacilityBookingStatus };
+
 module.exports = {
     getAllServices,
     registerService,
     getMyServices,
     getAllRegistrations,
-    cancelService
+    cancelService,
+    bookFacility,
+    getFacilityBookings,
+    updateFacilityBookingStatus
 };
