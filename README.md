@@ -39,22 +39,22 @@ Vui lòng đảm bảo máy tính của bạn đã cài đặt các phần mềm
 
 ## 🚀 Hướng dẫn cài đặt và chạy dự án (Setup Guide)
 
-Bước 1: Tải mã nguồn về máy**
+##Bước 1: Tải mã nguồn về máy**
 ```bash
 git clone [https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git](https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git)
 cd quan-ly-chung-cu-nncnpm
 
-Bước 2: Khôi phục Cơ sở dữ liệu
+##Bước 2: Khôi phục Cơ sở dữ liệu
 Mở SQL Server Management Studio (SSMS).
 Tạo một Database mới có tên là BluemoonDB.
 Chạy file script SQL (nếu có) hoặc copy các lệnh tạo bảng (Tables: Accounts, Households, Residents, Services, Invoices...) để khởi tạo cấu trúc dữ liệu ban đầu.
 
-Bước 3: Cài đặt thư viện
+##Bước 3: Cài đặt thư viện
 Di chuyển vào thư mục backend và cài đặt các gói phụ thuộc:
 cd bluemoon-backend
 npm install
 
-Bước 4: Cấu hình biến môi trường
+##Bước 4: Cấu hình biến môi trường
 Tạo một file có tên là .env nằm ở thư mục gốc của bluemoon-backend và khai báo các thông số kết nối Database của máy bạn:
 PORT=5000
 DB_USER=sa
@@ -63,11 +63,11 @@ DB_SERVER=localhost
 DB_NAME=BluemoonDB
 JWT_SECRET=mot_chuoi_ki_tu_bi_mat_bat_ky_cua_ban
 
-Bước 5: Khởi động Server
+##Bước 5: Khởi động Server
 Khởi động Backend bằng lệnh:
 npm run dev
 
-Bước 6: Mở giao diện ứng dụng
+##Bước 6: Mở giao diện ứng dụng
 Bật trình duyệt web (Chrome/Edge/Firefox), mở các file .html trong thư mục bluemoon-frontend hoặc thiết lập một Live Server để bắt đầu sử dụng.
 
 📂 Cấu trúc thư mục dự án:
