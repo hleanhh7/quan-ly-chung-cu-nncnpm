@@ -82,6 +82,20 @@ Nếu màn hình Terminal hiển thị dòng chữ xanh: `🎉 Ket noi SQL Serve
 ### Bước 6: Mở giao diện ứng dụng (Frontend)
 Ứng dụng sử dụng cơ chế gọi API Client-Server hoàn toàn độc lập. Bạn chỉ cần mở trực tiếp các file `.html` trong thư mục `bluemoon-frontend` bằng trình duyệt web hoặc thiết lập một *Live Server* (Extension trên VS Code) tại thư mục Frontend để bắt đầu trải nghiệm hệ thống tại địa chỉ local.
 
+
+Lưu ý, khi clone thì nên clone từ database trắng, folfder trắng, ở database đã có sẵn một số tài khoản resident với admin
+Tài khoản admin có thể làm được nhiều cái hơn tài khoản register 
+với tài khoản admin thì 
+tk: admin_bluemoon
+mk: admin123
+
+
+với tài khoản register thì cũng có nhiều cái
+
+tk: cudan_test101
+mk: 123456
+
+
 ---
 
 ## ⚠️ HƯỚNG DẪN FIX LỖI KẾT NỐI SQL SERVER (Dành cho người dùng mới)
