@@ -40,7 +40,6 @@ Vui lòng đảm bảo máy tính của bạn đã cài đặt các phần mềm
 ## 🚀 Hướng dẫn cài đặt và chạy dự án (Setup Guide)
 
 ##Bước 1: Tải mã nguồn về máy**
-```bash
 git clone [https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git](https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git)
 cd quan-ly-chung-cu-nncnpm
 
