@@ -3,9 +3,10 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectDB } = require('./config/db');
 
-const authRoutes = require('./routes/authRoutes'); // <-- THÊM DÒNG NÀY
-const managerRoutes = require('./routes/managerRoutes'); // <-- THÊM DÒNG NÀY1
+const authRoutes = require('./routes/authRoutes');
+const managerRoutes = require('./routes/managerRoutes');
 const residentRoutes = require('./routes/residentRoutes');
+const serviceRoutes = require('./routes/serviceRoutes'); // <-- 1. KHAI BÁO FILE ROUTE DỊCH VỤ Ở ĐÂY
 
 
 const app = express();
@@ -16,8 +17,9 @@ app.use(cors());
 app.use(express.json()); // Cho phép server đọc dữ liệu định dạng JSON từ client gửi lên
 
 app.use('/api/auth', authRoutes);
-app.use('/api/manager', managerRoutes); // <-- THÊM DÒNG NÀY
+app.use('/api/manager', managerRoutes);
 app.use('/api/resident', residentRoutes);
+app.use('/api/services', serviceRoutes); // <-- 2. KÍCH HOẠT ĐƯỜNG DẪN API DỊCH VỤ Ở ĐÂY
 
 
 // Route kiểm tra server hoạt động
