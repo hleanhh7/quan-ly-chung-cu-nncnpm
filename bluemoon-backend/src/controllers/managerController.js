@@ -1,15 +1,12 @@
 const { sql } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
-
 // API: Thêm hộ khẩu (Căn hộ) mới
 const createHousehold = async (req, res) => {
     try {
         const { Room_Number, Owner_Name, Move_In_Date } = req.body;
-
         const request = new sql.Request();
         
-        // Kiểm tra xem phòng này đã tồn tại chưa
         const checkRoom = await request
             .input('Room_Number', sql.VarChar, Room_Number)
             .query('SELECT * FROM Households WHERE Room_Number = @Room_Number');
@@ -18,7 +15,6 @@ const createHousehold = async (req, res) => {
             return res.status(400).json({ message: 'Số phòng này đã được đăng ký!' });
         }
 
-        // Thêm hộ mới
         await request
             .input('Owner_Name', sql.NVarChar, Owner_Name)
             .input('Move_In_Date', sql.Date, Move_In_Date)
@@ -37,10 +33,8 @@ const createHousehold = async (req, res) => {
 const addResident = async (req, res) => {
     try {
         const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
-
         const request = new sql.Request();
 
-        // Kiểm tra xem Hộ khẩu (Household_ID) có tồn tại không
         const checkHousehold = await request
             .input('Household_ID', sql.Int, Household_ID)
             .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
@@ -49,7 +43,6 @@ const addResident = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu này!' });
         }
 
-        // Thêm nhân khẩu
         await request
             .input('Full_Name', sql.NVarChar, Full_Name)
             .input('Identity_Card', sql.VarChar, Identity_Card)
@@ -71,10 +64,8 @@ const addResident = async (req, res) => {
 const createInvoice = async (req, res) => {
     try {
         const { Household_ID, Billing_Month, Billing_Year, Total_Amount } = req.body;
-
         const request = new sql.Request();
 
-        // Kiểm tra xem Hộ khẩu có tồn tại không
         const checkHousehold = await request
             .input('Household_ID', sql.Int, Household_ID)
             .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
@@ -83,7 +74,6 @@ const createInvoice = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu này!' });
         }
 
-        // Tạo hóa đơn mới
         await request
             .input('Billing_Month', sql.Int, Billing_Month)
             .input('Billing_Year', sql.Int, Billing_Year)
@@ -99,13 +89,11 @@ const createInvoice = async (req, res) => {
     }
 };
 
-// API: Lấy toàn bộ danh sách hộ khẩu để hiển thị lên bảng hoặc dropdown
+// API: Lấy toàn bộ danh sách hộ khẩu
 const getAllHouseholds = async (req, res) => {
     try {
         const request = new sql.Request();
-        // Lấy tất cả các hộ khẩu, sắp xếp theo số phòng
         const result = await request.query('SELECT * FROM Households ORDER BY Room_Number ASC');
-        
         res.status(200).json(result.recordset);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
@@ -118,7 +106,6 @@ const createResidentAccount = async (req, res) => {
         const { Household_ID, Username, Password } = req.body;
         const request = new sql.Request();
 
-        // 1. Kiểm tra xem Hộ khẩu này có tồn tại không
         const checkHousehold = await request
             .input('Household_ID', sql.Int, Household_ID)
             .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
@@ -127,7 +114,6 @@ const createResidentAccount = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy ID Hộ khẩu này!' });
         }
 
-        // 2. Kiểm tra tên đăng nhập đã có ai dùng chưa
         const checkUser = await request
             .input('Username', sql.VarChar, Username)
             .query('SELECT * FROM Accounts WHERE Username = @Username');
@@ -136,11 +122,9 @@ const createResidentAccount = async (req, res) => {
             return res.status(400).json({ message: 'Tên đăng nhập này đã tồn tại, vui lòng chọn tên khác!' });
         }
 
-        // 3. Mã hóa mật khẩu
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(Password, salt);
 
-        // 4. Lưu tài khoản vào DB với Role mặc định là 'Resident'
         await request
             .input('Password_Hash', sql.VarChar, hashedPassword)
             .input('Role', sql.VarChar, 'Resident')
@@ -159,7 +143,6 @@ const createResidentAccount = async (req, res) => {
 const getPendingDeclarations = async (req, res) => {
     try {
         const request = new sql.Request();
-        // Dùng JOIN để lấy thêm Tên người khai báo và Số phòng cho Quản lý dễ nhìn
         const query = `
             SELECT d.Declaration_ID, d.Declaration_Type, d.Start_Date, d.End_Date, d.Reason,
                    r.Full_Name, h.Room_Number
@@ -178,8 +161,8 @@ const getPendingDeclarations = async (req, res) => {
 // API: Cập nhật trạng thái đơn (Duyệt / Từ chối)
 const updateDeclarationStatus = async (req, res) => {
     try {
-        const { id } = req.params; // Lấy ID của đơn từ đường dẫn URL
-        const { Status } = req.body; // 'Đã duyệt' hoặc 'Từ chối'
+        const { id } = req.params; 
+        const { Status } = req.body; 
 
         const request = new sql.Request();
         await request
@@ -200,11 +183,9 @@ const updateDeclarationStatus = async (req, res) => {
 // API: Đổi trạng thái hộ khẩu thành "Đã chuyển đi"
 const updateHouseholdStatus = async (req, res) => {
     try {
-        const { id } = req.params; // Lấy ID hộ khẩu từ URL
-
+        const { id } = req.params; 
         const request = new sql.Request();
         
-        // 1. Cập nhật trạng thái Hộ khẩu
         await request
             .input('Household_ID', sql.Int, id)
             .input('Status', sql.NVarChar, 'Đã chuyển đi')
@@ -214,7 +195,6 @@ const updateHouseholdStatus = async (req, res) => {
                 WHERE Household_ID = @Household_ID
             `);
 
-        // 2. (Tùy chọn nâng cao) Xóa tài khoản Web của họ để họ không thể đăng nhập nữa
         await request
             .input('Household_ID_For_Account', sql.Int, id)
             .query(`
@@ -232,7 +212,6 @@ const updateHouseholdStatus = async (req, res) => {
 const getAllInvoices = async (req, res) => {
     try {
         const request = new sql.Request();
-        // Dùng JOIN để lấy thêm Số phòng hiển thị cho Quản lý
         const result = await request.query(`
             SELECT i.Invoice_ID, h.Room_Number, i.Billing_Month, i.Billing_Year, i.Total_Amount, i.Payment_Status
             FROM Invoices i
@@ -253,7 +232,7 @@ const payInvoice = async (req, res) => {
         
         await request
             .input('Invoice_ID', sql.Int, id)
-            .input('Payment_Status', sql.NVarChar, 'Đã thanh toán') // Không dùng chữ N ở đây nữa nhé
+            .input('Payment_Status', sql.NVarChar, 'Đã thanh toán')
             .query(`
                 UPDATE Invoices 
                 SET Payment_Status = @Payment_Status, Payment_Date = GETDATE()
@@ -266,7 +245,7 @@ const payInvoice = async (req, res) => {
     }
 };
 
-// API: Xem toàn bộ dịch vụ cư dân đang dùng (để biết đường tính tiền)
+// API: Xem toàn bộ dịch vụ cư dân đang dùng
 const getAllRegisteredServices = async (req, res) => {
     try {
         const request = new sql.Request();
@@ -284,4 +263,74 @@ const getAllRegisteredServices = async (req, res) => {
     }
 };
 
-module.exports = { createHousehold, addResident, createInvoice, getAllHouseholds, createResidentAccount, getPendingDeclarations, updateDeclarationStatus, updateHouseholdStatus, getAllInvoices, payInvoice, getAllRegisteredServices };
+// =========================================================================
+// TINH NANG 4: THONG BAO, TRUYEN THONG (DANH CHO BQL)
+// =========================================================================
+const createAnnouncement = async (req, res) => {
+    try {
+        const { Title, Content } = req.body;
+        const pool = await sql.connect();
+        
+        await pool.request()
+            .input('Title', sql.NVarChar, Title)
+            .input('Content', sql.NVarChar, Content)
+            .query('INSERT INTO Announcements (Title, Content) VALUES (@Title, @Content)');
+            
+        res.status(201).json({ message: 'Da phat hanh thong bao den toan the cu dan thanh cong!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Loi may chu khi tao thong bao', error: error.message });
+    }
+};
+
+// =========================================================================
+// TINH NANG 3: TIEP NHAN PHAN ANH & KHIEU NAI (DANH CHO BQL)
+// =========================================================================
+const getAllFeedbacks = async (req, res) => {
+    try {
+        const pool = await sql.connect();
+        const result = await pool.request().query(`
+            SELECT f.Feedback_ID, f.Title, f.Content, f.Status, f.Created_At, h.Room_Number 
+            FROM Feedbacks f 
+            JOIN Households h ON f.Household_ID = h.Household_ID 
+            ORDER BY f.Created_At DESC
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Loi he thong khi lay danh sach phan anh', error: error.message });
+    }
+};
+
+const updateFeedbackStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        const pool = await sql.connect();
+
+        await pool.request()
+            .input('Status', sql.NVarChar, Status)
+            .input('Feedback_ID', sql.Int, id)
+            .query('UPDATE Feedbacks SET Status = @Status WHERE Feedback_ID = @Feedback_ID');
+            
+        res.status(200).json({ message: 'Da cap nhat tien do xu ly phan anh thanh cong!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Loi khong the cap nhat trang thai phan anh', error: error.message });
+    }
+};
+
+// === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
+module.exports = { 
+    createHousehold, 
+    addResident, 
+    createInvoice, 
+    getAllHouseholds, 
+    createResidentAccount, 
+    getPendingDeclarations, 
+    updateDeclarationStatus, 
+    updateHouseholdStatus, 
+    getAllInvoices, 
+    payInvoice, 
+    getAllRegisteredServices,
+    createAnnouncement,
+    getAllFeedbacks,
+    updateFeedbackStatus
+};

@@ -11,11 +11,13 @@ Dự án phần mềm Full-stack giúp số hóa và tự động hóa quy trìn
 * **Quản lý Tài chính:** Phát hành hóa đơn hàng tháng (tiền nhà, dịch vụ) và đánh dấu trạng thái thu tiền.
 * **Duyệt đơn từ:** Xử lý và phê duyệt các đơn xin Tạm trú / Tạm vắng do cư dân gửi lên.
 * **Thống kê Dịch vụ:** Theo dõi danh sách cư dân đang đăng ký sử dụng các dịch vụ (gửi xe máy, ô tô, dọn dẹp...) để làm căn cứ tính phí.
+* **Quản lý Truyền thông & Phản hồi:** Phát hành thông báo toàn chung cư, tiếp nhận và cập nhật tiến độ xử lý phản ánh, khiếu nại từ cư dân.
 
 ### 👨‍👩‍👧‍👦 Dành cho Cư Dân (Resident)
 * **Theo dõi Hóa đơn:** Xem lịch sử các khoản phí cần đóng và tình trạng thanh toán của phòng mình.
 * **Đăng ký Dịch vụ:** Chủ động đăng ký thêm các gói dịch vụ trực tuyến.
 * **Khai báo Tạm trú / Tạm vắng:** Gửi đơn khai báo trực tuyến lên Ban quản lý mà không cần xuống trực tiếp quầy lễ tân.
+* **Tương tác trực tuyến:** Xem bảng tin chung cư, gửi yêu cầu sửa chữa, bảo trì hoặc phản ánh trực tiếp tới Ban quản lý.
 
 ---
 
@@ -32,59 +34,101 @@ Dự án phần mềm Full-stack giúp số hóa và tự động hóa quy trìn
 
 Vui lòng đảm bảo máy tính của bạn đã cài đặt các phần mềm sau trước khi chạy dự án:
 * [Node.js](https://nodejs.org/) (Phiên bản LTS)
-* Microsoft SQL Server & SQL Server Management Studio (SSMS)
+* Microsoft SQL Server (Hỗ trợ cả bản Local và bản Express) & SQL Server Management Studio (SSMS)
 * Git
 
 ---
 
 ## 🚀 Hướng dẫn cài đặt và chạy dự án (Setup Guide)
 
-##Bước 1: Tải mã nguồn về máy**
+### Bước 1: Tải mã nguồn về máy
+```bash
 git clone [https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git](https://github.com/hleanhh7/quan-ly-chung-cu-nncnpm.git)
 cd quan-ly-chung-cu-nncnpm
+```
 
-##Bước 2: Khôi phục Cơ sở dữ liệu
-Mở SQL Server Management Studio (SSMS).
-Tạo một Database mới có tên là BluemoonDB.
-Chạy file script SQL (nếu có) hoặc copy các lệnh tạo bảng (Tables: Accounts, Households, Residents, Services, Invoices...) để khởi tạo cấu trúc dữ liệu ban đầu.
+### Bước 2: Khôi phục Cơ sở dữ liệu
+1. Mở SQL Server Management Studio (SSMS).
+2. Tạo một Database mới có tên là `BluemoonDB`.
+3. Chạy file script SQL (nếu có) hoặc tạo các bảng theo cấu trúc thiết kế (`Accounts`, `Households`, `Residents`, `Services`, `Invoices`, `Declarations`, `Announcements`, `Feedbacks`, `ServiceRegistrations`...) để khởi tạo dữ liệu.
 
-##Bước 3: Cài đặt thư viện
+### Bước 3: Cài đặt thư viện cho Backend
 Di chuyển vào thư mục backend và cài đặt các gói phụ thuộc:
+```bash
 cd bluemoon-backend
 npm install
+```
 
-##Bước 4: Cấu hình biến môi trường
-Tạo một file có tên là .env nằm ở thư mục gốc của bluemoon-backend và khai báo các thông số kết nối Database của máy bạn:
+### Bước 4: Cấu hình biến môi trường
+Tạo một file có tên chính xác là **`.env`** (⚠️ *Lưu ý gõ đúng chữ `env` - viết tắt của Environment, tránh gõ nhầm thành `.evn` khiến Node.js không đọc được cấu hình*) nằm ở thư mục gốc của `bluemoon-backend` và khai báo các thông số sau:
+
+```env
 PORT=5000
 DB_USER=sa
 DB_PASSWORD=Mat_Khau_SQL_Cua_Ban
-DB_SERVER=localhost
+DB_SERVER=127.0.0.1
 DB_NAME=BluemoonDB
+DB_PORT=1433
 JWT_SECRET=mot_chuoi_ki_tu_bi_mat_bat_ky_cua_ban
+```
 
-##Bước 5: Khởi động Server
+### Bước 5: Khởi động Server Backend
 Khởi động Backend bằng lệnh:
-npm run dev
-
-##Bước 6: Mở giao diện ứng dụng
-Bật trình duyệt web (Chrome/Edge/Firefox), mở các file .html trong thư mục bluemoon-frontend hoặc thiết lập một Live Server để bắt đầu sử dụng.
-
-📂 Cấu trúc thư mục dự án:
 ```bash
+npm start
+```
+Nếu màn hình Terminal hiển thị dòng chữ xanh: `🎉 Ket noi SQL Server (SSMS) thanh cong voi database: BluemoonDB` tức là hệ thống Backend đã sẵn sàng nhận kết nối.
+
+### Bước 6: Mở giao diện ứng dụng (Frontend)
+Ứng dụng sử dụng cơ chế gọi API Client-Server hoàn toàn độc lập. Bạn chỉ cần mở trực tiếp các file `.html` trong thư mục `bluemoon-frontend` bằng trình duyệt web hoặc thiết lập một *Live Server* (Extension trên VS Code) tại thư mục Frontend để bắt đầu trải nghiệm hệ thống tại địa chỉ local.
+
+---
+
+## ⚠️ HƯỚNG DẪN FIX LỖI KẾT NỐI SQL SERVER (Dành cho người dùng mới)
+
+Mặc định khi mới cài đặt SQL Server, Microsoft sẽ chặn quyền truy cập từ các ứng dụng bên ngoài (như Node.js). Nếu bạn gặp lỗi `Could not connect` hoặc `Login failed for user 'sa'`, hãy thực hiện cấu hình 3 bước sau trên máy của bạn:
+
+### 1. Mở cổng mạng TCP/IP (Port 1433)
+1. Bấm phím `Windows`, tìm kiếm phần mềm **SQL Server Configuration Manager** (Nếu không thấy, nhấn `Windows + R`, gõ `SQLServerManager16.msc` cho bản SSMS 20/SQL 2022 hoặc `SQLServerManager15.msc` cho bản SQL 2019).
+2. Ở cột bên trái, click mở rộng mục **SQL Server Network Configuration** -> Chọn **Protocols for SQLEXPRESS** (hoặc Protocols tương ứng bản cài của bạn).
+3. Ở khung bên phải, click chuột phải vào **TCP/IP** -> Chọn **Enable**.
+4. Tiếp tục click đúp vào chữ **TCP/IP** -> Chuyển sang tab **IP Addresses** -> Kéo xuống tận cùng dưới đáy tìm mục **IPAll**.
+5. Tại dòng **TCP Port**, nhập số `1433`. Bấm *Apply* và *OK*.
+
+### 2. Cho phép đăng nhập hỗn hợp & Mở khóa tài khoản `sa`
+1. Mở phần mềm **SSMS**, đăng nhập bằng chế độ `Windows Authentication`.
+2. Click chuột phải vào tên Server ở trên cùng cột trái (`localhost\SQLEXPRESS`) -> Chọn **Properties** -> Chọn mục **Security** ở cột trái bảng hiện ra.
+3. Tại mục *Server authentication*, tích chọn ô số 2: **SQL Server and Windows Authentication mode**. Bấm **OK**.
+4. Quay lại cột trái SSMS, mở rộng mục **Security** -> **Logins** -> Click chuột phải vào tài khoản **sa** -> Chọn **Properties**.
+5. Tại tab **General**, thiết lập lại mật khẩu mới cho tài khoản `sa`.
+6. Tại tab **Status**, ở mục *Login*, tích chọn **Enabled** để mở khóa tài khoản. Bấm **OK**.
+
+### 3. Áp dụng cấu hình (Khởi động lại dịch vụ)
+1. Quay lại giao diện phần mềm **SQL Server Configuration Manager**.
+2. Click chuột trái vào mục **SQL Server Services** ở cột bên trái.
+3. Nhìn sang khung bên phải, click chuột phải vào dòng dịch vụ **SQL Server (SQLEXPRESS)** -> Chọn **Restart**. 
+4. Bây giờ hệ thống SQL Server của bạn đã sẵn sàng bắt tay với Backend Node.js!
+
+---
+
+## 📂 Cấu trúc thư mục dự án
+
+```text
 📦 quan-ly-chung-cu-nncnpm
  ┣ 📂 bluemoon-backend
  ┃ ┣ 📂 src
- ┃ ┃ ┣ 📂 config       # File cấu hình kết nối CSDL
- ┃ ┃ ┣ 📂 controllers  # Xử lý logic hệ thống (Manager, Resident, Auth)
- ┃ ┃ ┣ 📂 middleware   # Kiểm tra bảo mật Token & Phân quyền
- ┃ ┃ ┣ 📂 routes       # Định nghĩa các đường dẫn API
- ┃ ┃ ┗ 📜 server.js    # File gốc khởi chạy Backend
- ┃ ┣ 📜 .env           # File cấu hình môi trường (Không đẩy lên Git)
- ┃ ┣ 📜 .gitignore     # Khai báo các file bỏ qua khi push Git
- ┃ ┗ 📜 package.json   # Quản lý các thư viện Node.js
+ ┃ ┃ ┣ 📂 config       # Cấu hình kết nối SQL Server (mssql)
+ ┃ ┃ ┣ 📂 controllers  # Xử lý logic nghiệp vụ (Hộ khẩu, Hóa đơn, Đơn từ, Tin tức, Phản ánh)
+ ┃ ┃ ┣ 📂 middleware   # Xác thực Token JWT & Kiểm tra phân quyền (Manager / Resident)
+ ┃ ┃ ┣ 📂 routes       # Định tuyến các cổng API phân hệ
+ ┃ ┃ ┗ 📜 server.js    # File gốc khởi chạy ứng dụng Backend
+ ┃ ┣ 📜 .env           # Cấu hình môi trường local (Không đẩy lên Git)
+ ┃ ┣ 📜 .gitignore     # Khai báo loại bỏ thư mục node_modules và .env khi push Git
+ ┃ ┗ 📜 package.json   # Quản lý phiên bản các thư viện Node.js
  ┗ 📂 bluemoon-frontend
-   ┣ 📜 index.html              # Giao diện Đăng nhập
-   ┣ 📜 manager_dashboard.html  # Giao diện Quản lý
-   ┣ 📜 resident_dashboard.html # Giao diện Cư dân
-   ┣ 📜 manager.js              # Logic xử lý giao diện Quản lý
-   ┗ 📜 resident.js             # Logic xử lý giao diện Cư dân
+   ┣ 📜 index.html              # Giao diện Đăng nhập hệ thống
+   ┣ 📜 manager_dashboard.html  # Giao diện tổng quan và chức năng cho Ban Quản Lý
+   ┣ 📜 resident_dashboard.html # Giao diện tổng quan và chức năng cho Cư Dân
+   ┣ 📜 manager.js              # Logic Javascript, Fetch API tương tác phân hệ Quản lý
+   ┗ 📜 resident.js             # Logic Javascript, Fetch API tương tác phân hệ Cư dân
+```

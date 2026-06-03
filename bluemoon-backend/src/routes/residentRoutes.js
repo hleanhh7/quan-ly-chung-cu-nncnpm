@@ -6,6 +6,7 @@ const residentController = require('../controllers/residentController');
 const { verifyToken, isResident } = require('../middlewares/authMiddleware');
 
 // Áp dụng bảo vệ cho tất cả các route của cư dân
+// Bất cứ ai gọi API bắt đầu bằng /api/resident/... đều phải đi qua 2 trạm này
 router.use(verifyToken, isResident);
 
 // Đường dẫn: GET /api/resident/invoices
@@ -23,4 +24,11 @@ router.post('/service-register', residentController.registerService);
 // Đường dẫn: GET /api/resident/my-services
 router.get('/my-services', residentController.getMyRegisteredServices);
 
+// ==========================================================
+// TÍNH NĂNG MỚI (Thông báo & Phản ánh)
+// ==========================================================
+router.get('/announcements', residentController.getAnnouncements);
+router.post('/feedbacks', residentController.sendFeedback);
+
+// LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

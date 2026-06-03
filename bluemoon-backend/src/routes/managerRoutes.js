@@ -2,44 +2,52 @@ const express = require('express');
 const router = express.Router();
 const managerController = require('../controllers/managerController');
 
-// Nạp các trạm kiểm tra an ninh (Middlewares)
+// Nap cac tram kiem tra an ninh (Middlewares)
 const { verifyToken, isManager } = require('../middlewares/authMiddleware');
 
-// Áp dụng bảo mật cho TẤT CẢ các đường dẫn trong router này
-// Bất cứ ai gọi API bắt đầu bằng /api/manager/... đều phải đi qua 2 trạm này
+// Ap dung bao mat cho TAT CA cac duong dan trong router nay
+// Bat cu ai goi API bat dau bang /api/manager/... deu phai di qua 2 tram nay
 router.use(verifyToken, isManager);
 
-// Đường dẫn: POST /api/manager/household
+// Duong dan: POST /api/manager/household
 router.post('/household', managerController.createHousehold);
 
-// Đường dẫn: POST /api/manager/resident
+// Duong dan: POST /api/manager/resident
 router.post('/resident', managerController.addResident);
 
-module.exports = router;
-
-// Đường dẫn: POST /api/manager/invoice
+// Duong dan: POST /api/manager/invoice
 router.post('/invoice', managerController.createInvoice);
 
-// Đường dẫn: GET /api/manager/households
+// Duong dan: GET /api/manager/households
 router.get('/households', managerController.getAllHouseholds);
 
-// Đường dẫn: POST /api/manager/account
+// Duong dan: POST /api/manager/account
 router.post('/account', managerController.createResidentAccount);
 
-// Đường dẫn: GET /api/manager/declarations (Lấy danh sách chờ duyệt)
+// Duong dan: GET /api/manager/declarations (Lay danh sach cho duyet)
 router.get('/declarations', managerController.getPendingDeclarations);
 
-// Đường dẫn: PUT /api/manager/declaration/:id (Cập nhật trạng thái duyệt)
+// Duong dan: PUT /api/manager/declaration/:id (Cap nhat trang thai duyet)
 router.put('/declaration/:id', managerController.updateDeclarationStatus);
 
-// Đường dẫn: PUT /api/manager/household/:id/status
+// Duong dan: PUT /api/manager/household/:id/status
 router.put('/household/:id/status', managerController.updateHouseholdStatus);
 
-// Đường dẫn: GET /api/manager/invoices (Lấy danh sách tất cả hóa đơn)
+// Duong dan: GET /api/manager/invoices (Lay danh sach tat ca hoa don)
 router.get('/invoices', managerController.getAllInvoices);
 
-// Đường dẫn: PUT /api/manager/invoice/:id/pay (Xác nhận thu tiền)
+// Duong dan: PUT /api/manager/invoice/:id/pay (Xac nhan thu tien)
 router.put('/invoice/:id/pay', managerController.payInvoice);
 
-// Đường dẫn: GET /api/manager/registered-services
+// Duong dan: GET /api/manager/registered-services
 router.get('/registered-services', managerController.getAllRegisteredServices);
+
+// ==========================================================
+// TINH NANG MOI (Thong bao & Phan anh)
+// ==========================================================
+router.post('/announcements', managerController.createAnnouncement);
+router.get('/feedbacks', managerController.getAllFeedbacks);
+router.put('/feedbacks/:id', managerController.updateFeedbackStatus);
+
+// LUON LUON DE DONG NAY O CUOI CUNG CUA FILE
+module.exports = router;

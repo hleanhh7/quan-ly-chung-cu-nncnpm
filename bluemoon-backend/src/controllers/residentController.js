@@ -3,7 +3,6 @@ const { sql } = require('../config/db');
 // API 1: Xem danh sách hóa đơn của nhà mình
 const getMyInvoices = async (req, res) => {
     try {
-        // Lấy ID hộ khẩu từ Token người dùng đang đăng nhập
         const householdId = req.user.householdId;
         
         if (!householdId) {
@@ -26,10 +25,8 @@ const createDeclaration = async (req, res) => {
     try {
         const householdId = req.user.householdId;
         const { Resident_ID, Declaration_Type, Start_Date, End_Date, Reason } = req.body;
-
         const request = new sql.Request();
 
-        // Kiểm tra xem Nhân khẩu này (Resident_ID) có đúng là người nhà của hộ này (Household_ID) không
         const checkResident = await request
             .input('Resident_ID', sql.Int, Resident_ID)
             .input('Household_ID', sql.Int, householdId)
@@ -39,7 +36,6 @@ const createDeclaration = async (req, res) => {
             return res.status(403).json({ message: 'Nhân khẩu không tồn tại hoặc không thuộc hộ của bạn!' });
         }
 
-        // Tạo đơn khai báo
         await request
             .input('Declaration_Type', sql.VarChar, Declaration_Type)
             .input('Start_Date', sql.Date, Start_Date)
@@ -55,7 +51,6 @@ const createDeclaration = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
-
 
 // API: Lấy danh sách các dịch vụ hiện có
 const getAvailableServices = async (req, res) => {
@@ -73,10 +68,8 @@ const registerService = async (req, res) => {
     try {
         const householdId = req.user.householdId;
         const { Service_ID, Start_Date, Quantity } = req.body;
-
         const request = new sql.Request();
 
-        // Lưu thông tin đăng ký vào bảng ServiceRegistrations
         await request
             .input('Household_ID', sql.Int, householdId)
             .input('Service_ID', sql.Int, Service_ID)
@@ -99,7 +92,6 @@ const getMyRegisteredServices = async (req, res) => {
         const householdId = req.user.householdId;
         const request = new sql.Request();
         
-        // Dùng JOIN để lấy tên dịch vụ và giá tiền từ bảng Services
         const result = await request
             .input('Household_ID', sql.Int, householdId)
             .query(`
@@ -116,4 +108,53 @@ const getMyRegisteredServices = async (req, res) => {
     }
 };
 
-module.exports = { getMyInvoices, createDeclaration, getAvailableServices, registerService, getMyRegisteredServices };
+// =========================================================================
+// TINH NANG 4: XEM BANG TIN CHUNG CU (DANH CHO CU DAN)
+// =========================================================================
+const getAnnouncements = async (req, res) => {
+    try {
+        const pool = await sql.connect();
+        const result = await pool.request()
+            .query('SELECT * FROM Announcements ORDER BY Created_At DESC');
+            
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Loi khong lay duoc thong bao', error: error.message });
+    }
+};
+
+// =========================================================================
+// TINH NANG 3: GUI YEU CAU SUA CHUA, BAO TRI, PHAN ANH (DANH CHO CU DAN)
+// =========================================================================
+const sendFeedback = async (req, res) => {
+    try {
+        const householdId = req.user.householdId; 
+        const { Title, Content } = req.body;
+        
+        if (!householdId) {
+            return res.status(403).json({ message: 'Tai khoan cua ban chua duoc lien ket voi can ho nao!' });
+        }
+        
+        const pool = await sql.connect();
+        await pool.request()
+            .input('Household_ID', sql.Int, householdId)
+            .input('Title', sql.NVarChar, Title)
+            .input('Content', sql.NVarChar, Content)
+            .query('INSERT INTO Feedbacks (Household_ID, Title, Content) VALUES (@Household_ID, @Title, @Content)');
+            
+        res.status(201).json({ message: 'Gui phan anh thanh cong! Ban quan ly da tiep nhan yeu cau.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Loi khong the gui phan anh', error: error.message });
+    }
+};
+
+// === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
+module.exports = { 
+    getMyInvoices, 
+    createDeclaration, 
+    getAvailableServices, 
+    registerService, 
+    getMyRegisteredServices,
+    getAnnouncements,
+    sendFeedback
+};
