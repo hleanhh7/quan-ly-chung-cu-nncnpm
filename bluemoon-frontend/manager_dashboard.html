@@ -85,6 +85,23 @@
             </table>
     </div>
 
+    <div class="card" style="flex: 1 1 100%;">
+    <h3>Lịch Sử Hộ Đã Chuyển Đi</h3>
+    <table style="width:100%;border-collapse:collapse;margin-top:15px;">
+        <thead>
+            <tr style="background-color:#e74c3c;color:white;">
+                <th style="padding:10px;border:1px solid #ddd;">Số Phòng</th>
+                <th style="padding:10px;border:1px solid #ddd;">Tên Chủ Hộ</th>
+                <th style="padding:10px;border:1px solid #ddd;">Ngày Chuyển Vào</th>
+                <th style="padding:10px;border:1px solid #ddd;">Ngày Chuyển Đi</th>
+            </tr>
+        </thead>
+        <tbody id="moveOutHistoryBody">
+            <tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>
+        </tbody>
+    </table>
+</div>
+
     <div class="container">
         <div class="card">
             <h3>Thêm Hộ Khẩu Mới</h3>
@@ -105,58 +122,66 @@
             </form>
         </div>
 
+        <div class="card">
+    <h3>Thêm Nhân Khẩu</h3>
+    <form id="formResident">
+        <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="resHouseholdId" required></div>
+        <div class="form-group"><label>Họ tên</label><input type="text" id="resFullName" required></div>
+        <div class="form-group"><label>CCCD</label><input type="text" id="resIdentity" required></div>
+        <div class="form-group"><label>Ngày sinh</label><input type="date" id="resDob" required></div>
+        <div class="form-group"><label>Quan hệ chủ hộ</label><input type="text" id="resRelation" required></div>
+        <button type="submit" class="btn-submit">Thêm Nhân Khẩu</button>
+    </form>
+</div>
+
 
     <div class="card" style="flex: 1 1 100%;">
-            <h3>Duyệt Đơn Tạm Trú / Tạm Vắng</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #e67e22; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Người khai báo</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Loại</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Thời gian</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Lý do</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="declarationTableBody">
-                    <tr><td colspan="6">Đang tải dữ liệu...</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <h3>Duyệt Đăng Ký Dịch Vụ Chung Cư</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead>
+            <tr style="background-color: #2980b9; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd;">Mã YC</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Ngày Gửi</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Loại Dịch Vụ</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Chi Tiết Yêu Cầu</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Trạng Thái</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Hành Động</th>
+            </tr>
+        </thead>
+        <tbody id="bangDuyetDichVu">
+            <tr><td colspan="7" style="text-align: center;">Đang tải danh sách yêu cầu dịch vụ...</td></tr>
+        </tbody>
+    </table>
+</div>
 
-        <div class="card">
-            <h3>Thêm Nhân Khẩu</h3>
-            <form id="formResident">
-                <div class="form-group">
-                    <label>ID Hộ Khẩu</label>
-                    <input type="number" id="resHouseholdId" required>
-                </div>
-                <div class="form-group">
-                    <label>Họ và Tên</label>
-                    <input type="text" id="resFullName" required>
-                </div>
-                <div class="form-group">
-                    <label>CCCD / Hộ chiếu</label>
-                    <input type="text" id="resIdentity">
-                </div>
-                <div class="form-group">
-                    <label>Ngày sinh</label>
-                    <input type="date" id="resDob" required>
-                </div>
-                <div class="form-group">
-                    <label>Quan hệ với chủ hộ</label>
-                    <select id="resRelation" required>
-                        <option value="Chủ hộ">Chủ hộ</option>
-                        <option value="Vợ">Vợ</option>
-                        <option value="Chồng">Chồng</option>
-                        <option value="Con">Con</option>
-                        <option value="Khác">Khác</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-submit">Thêm Nhân Khẩu</button>
-            </form>
-        </div>
+<div class="card" style="flex: 1 1 100%; display: none;"> <h3>Đơn tạm trú tạm vắng chờ duyệt</h3>
+    <table>
+        <tbody id="declarationTableBody"></tbody>
+    </table>
+</div>
+
+    <script>
+        function xuLyYeuCau(maYC, hanhDong) {
+            let row = document.getElementById(maYC);
+            let trangThaiCell = row.querySelector('.trang-thai');
+            let hanhDongCell = row.querySelector('.hanh-dong');
+
+            if (hanhDong === 'duyet') {
+                if(confirm('Xác nhận DUYỆT yêu cầu ' + maYC + ' ?')) {
+                    trangThaiCell.innerHTML = '<span style="color: #27ae60; font-weight: bold;">Đã duyệt</span>';
+                    hanhDongCell.innerHTML = '<i style="color: #7f8c8d; font-size: 14px;">Đã xử lý</i>';
+                }
+            } else if (hanhDong === 'tuchoi') {
+                let lyDo = prompt('Nhập lý do từ chối cho yêu cầu ' + maYC + ':');
+                if(lyDo != null && lyDo.trim() !== '') {
+                    trangThaiCell.innerHTML = '<span style="color: #c0392b; font-weight: bold;">Từ chối</span>';
+                    hanhDongCell.innerHTML = '<i style="color: #c0392b; font-size: 14px;">Lý do: ' + lyDo + '</i>';
+                }
+            }
+        }
+    </script>
+
 
         <div class="card">
             <h3>Cấp Tài Khoản Cư Dân</h3>
