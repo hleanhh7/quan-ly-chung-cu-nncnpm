@@ -70,7 +70,7 @@ npm run dev
 Bật trình duyệt web (Chrome/Edge/Firefox), mở các file .html trong thư mục bluemoon-frontend hoặc thiết lập một Live Server để bắt đầu sử dụng.
 
 📂 Cấu trúc thư mục dự án:
-'''bash
+```bash
 📦 quan-ly-chung-cu-nncnpm
  ┣ 📂 bluemoon-backend
  ┃ ┣ 📂 src
