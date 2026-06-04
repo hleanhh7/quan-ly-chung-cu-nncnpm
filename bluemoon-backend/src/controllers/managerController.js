@@ -218,6 +218,7 @@ const payInvoice = async (req, res) => {
 };
 
 // API: Xem toàn bộ dịch vụ cư dân đang dùng
+// Thay thế hàm cũ bằng hàm này
 const getAllRegisteredServices = async (req, res) => {
     try {
         const request = new sql.Request();
@@ -227,6 +228,7 @@ const getAllRegisteredServices = async (req, res) => {
             FROM ServiceRegistrations sr
             JOIN Services s ON sr.Service_ID = s.Service_ID
             JOIN Households h ON sr.Household_ID = h.Household_ID
+            WHERE sr.Status = N'Đã duyệt' -- <=== THÊM DÒNG NÀY ĐỂ CHỈ LẤY DỊCH VỤ ĐÃ DUYỆT
             ORDER BY h.Room_Number ASC, sr.Start_Date DESC
         `);
         res.status(200).json(result.recordset);
@@ -311,6 +313,49 @@ const addResident = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+
+// =========================================================================
+// TINH NANG: DUYET DANG KY DICH VU (TAB 3)
+// =========================================================================
+
+// API: Lấy danh sách đăng ký dịch vụ đang chờ duyệt
+const getPendingServiceRequests = async (req, res) => {
+    try {
+        const request = new sql.Request();
+        const result = await request.query(`
+            SELECT sr.Registration_ID as Request_ID, h.Room_Number, s.Service_Name, sr.Quantity, sr.Start_Date, sr.Status
+            FROM ServiceRegistrations sr
+            JOIN Households h ON sr.Household_ID = h.Household_ID
+            JOIN Services s ON sr.Service_ID = s.Service_ID
+            WHERE sr.Status = N'Chờ duyệt'
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Cập nhật trạng thái đăng ký dịch vụ (Duyệt / Từ chối)
+const updateServiceRequestStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        const request = new sql.Request();
+
+        await request
+            .input('Status', sql.NVarChar, Status)
+            .input('Registration_ID', sql.Int, id)
+            .query(`
+                UPDATE ServiceRegistrations 
+                SET Status = @Status 
+                WHERE Registration_ID = @Registration_ID
+            `);
+
+        res.status(200).json({ message: `Đã ${Status.toLowerCase()} yêu cầu đăng ký dịch vụ!` });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 
@@ -326,5 +371,7 @@ module.exports = {
     getAllRegisteredServices,
     createAnnouncement,
     getAllFeedbacks,
-    updateFeedbackStatus
+    updateFeedbackStatus,
+    getPendingServiceRequests,      // <-- Thêm dòng này
+    updateServiceRequestStatus      // <-- Thêm dòng này
 };

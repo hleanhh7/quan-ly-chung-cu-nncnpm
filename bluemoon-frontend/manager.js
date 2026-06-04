@@ -1,41 +1,17 @@
-// 1. KIỂM TRA BẢO MẬT (Chỉ Quản lý mới được vào)
+// =========================================================================
+// 1. KIỂM TRA BẢO MẬT & KHỞI TẠO ĐỊA CHỈ API
+// =========================================================================
 const token = localStorage.getItem('bluemoon_token');
 const role = localStorage.getItem('bluemoon_role');
+const API_BASE = 'http://localhost:5000/api/manager';
 
 if (!token || role !== 'Manager') {
     alert('Truy cập bị từ chối. Chỉ dành cho Ban Quản Lý!');
     window.location.href = 'index.html';
 }
 
-// ==================================================
-// 2. MOCK DATA - KHỞI TẠO DỮ LIỆU MẪU
-// ==================================================
-if (!localStorage.getItem('households')) {
-    localStorage.setItem('households', JSON.stringify([
-        { Household_ID: 1, Room_Number: 'A1-101', Owner_Name: 'Nguyễn Văn An', Move_In_Date: '2023-03-15', Status: 'Đang ở' },
-        { Household_ID: 2, Room_Number: 'B2-405', Owner_Name: 'Trần Thị Bình', Move_In_Date: '2022-07-01', Status: 'Đang ở' },
-    ]));
-}
-if (!localStorage.getItem('invoices')) {
-    localStorage.setItem('invoices', JSON.stringify([
-        { Invoice_ID: 1, Room_Number: 'A1-101', Billing_Month: 5, Billing_Year: 2026, Total_Amount: 1250000, Payment_Status: 'Chưa thanh toán' },
-        { Invoice_ID: 2, Room_Number: 'B2-405', Billing_Month: 5, Billing_Year: 2026, Total_Amount: 980000,  Payment_Status: 'Đã thanh toán' },
-    ]));
-}
-if (!localStorage.getItem('registeredServices')) {
-    localStorage.setItem('registeredServices', JSON.stringify([
-        { Room_Number: 'A1-101', Service_Name: 'Gửi xe máy', Quantity: 1, Start_Date: '2025-01-15', Estimated_Cost: 200000 },
-    ]));
-}
-if (!localStorage.getItem('declarations')) {
-    localStorage.setItem('declarations', JSON.stringify([]));
-}
-if (!localStorage.getItem('serviceRequests')) {
-    localStorage.setItem('serviceRequests', JSON.stringify([]));
-}
-
-// HÀM TIỆN ÍCH: Dùng để gọi API chung cho các form
-async function callManagerApi(url, data, formId) {
+// HÀM TIỆN ÍCH: Dùng để gọi API POST chung cho các form
+async function callManagerApi(url, data, formId, callback) {
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -49,6 +25,7 @@ async function callManagerApi(url, data, formId) {
         if (response.ok) {
             alert('Thành công: ' + result.message);
             document.getElementById(formId).reset();
+            if (callback) callback(); // Tải lại bảng nếu có truyền hàm callback
         } else {
             alert('Lỗi: ' + result.message);
         }
@@ -59,30 +36,16 @@ async function callManagerApi(url, data, formId) {
 }
 
 // ==================================================
-// 3. XỬ LÝ CÁC FORM GỬI DỮ LIỆU
+// 2. XỬ LÝ CÁC FORM GỬI DỮ LIỆU (TẠO MỚI)
 // ==================================================
-document.getElementById('formHousehold').addEventListener('submit', async function(e) {
+document.getElementById('formHousehold').addEventListener('submit', function(e) {
     e.preventDefault();
     const data = {
         Room_Number: document.getElementById('roomNumber').value,
         Owner_Name: document.getElementById('ownerName').value,
         Move_In_Date: document.getElementById('moveInDate').value
     };
-    try {
-        const response = await fetch('http://localhost:5000/api/manager/household', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (response.ok) {
-            alert('Thành công: ' + result.message);
-            document.getElementById('formHousehold').reset();
-            fetchHouseholds(); 
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) { console.error(error); }
+    callManagerApi(`${API_BASE}/household`, data, 'formHousehold', fetchHouseholds);
 });
 
 document.getElementById('formResident').addEventListener('submit', function(e) {
@@ -94,7 +57,7 @@ document.getElementById('formResident').addEventListener('submit', function(e) {
         Date_Of_Birth: document.getElementById('resDob').value,
         Relation_With_Owner: document.getElementById('resRelation').value
     };
-    callManagerApi('http://localhost:5000/api/manager/resident', data, 'formResident');
+    callManagerApi(`${API_BASE}/resident`, data, 'formResident');
 });
 
 document.getElementById('formInvoice').addEventListener('submit', function(e) {
@@ -105,8 +68,7 @@ document.getElementById('formInvoice').addEventListener('submit', function(e) {
         Billing_Year: document.getElementById('invYear').value,
         Total_Amount: document.getElementById('invTotal').value
     };
-    callManagerApi('http://localhost:5000/api/manager/invoice', data, 'formInvoice');
-    setTimeout(fetchAllInvoices, 500); // Tải lại bảng sau khi lưu
+    callManagerApi(`${API_BASE}/invoice`, data, 'formInvoice', fetchAllInvoices);
 });
 
 document.getElementById('formAccount').addEventListener('submit', function(e) {
@@ -116,7 +78,7 @@ document.getElementById('formAccount').addEventListener('submit', function(e) {
         Username: document.getElementById('accUsername').value,
         Password: document.getElementById('accPassword').value
     };
-    callManagerApi('http://localhost:5000/api/manager/account', data, 'formAccount');
+    callManagerApi(`${API_BASE}/account`, data, 'formAccount');
 });
 
 document.getElementById('btnLogout').addEventListener('click', function() {
@@ -125,14 +87,17 @@ document.getElementById('btnLogout').addEventListener('click', function() {
     window.location.href = 'index.html';
 });
 
+
 // ==================================================
-// 4. RENDER BẢNG VÀ CHỨC NĂNG (GIAO DIỆN)
+// 3. RENDER BẢNG VÀ CHỨC NĂNG CẬP NHẬT (GIAO DIỆN)
 // ==================================================
 
 // --- QUẢN LÝ HÓA ĐƠN ---
 async function fetchAllInvoices() {
     try {
-        const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+        const response = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const invoices = await response.json();
+        
         const tbody = document.getElementById('allInvoicesTableBody');
         if(!tbody) return;
         tbody.innerHTML = '';
@@ -141,14 +106,13 @@ async function fetchAllInvoices() {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hóa đơn nào được tạo.</td></tr>';
         } else {
             invoices.forEach(inv => {
-                // Nút thu tiền gọi đúng hàm xacNhanThuTien
                 const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
                     ? `<button onclick="xacNhanThuTien(${inv.Invoice_ID})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
                     : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
 
                 const statusColor = inv.Payment_Status === 'Chưa thanh toán' ? '#e74c3c' : '#27ae60';
 
-                const row = `
+                tbody.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${inv.Room_Number}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
@@ -157,115 +121,102 @@ async function fetchAllInvoices() {
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
             });
         }
     } catch (error) { console.error('Lỗi tải hóa đơn:', error); }
 }
 
-window.xacNhanThuTien = function(id) {
+window.xacNhanThuTien = async function(id) {
     if (!confirm('Xác nhận hộ dân này đã đóng tiền?')) return;
-
-    // Lấy dữ liệu, thay đổi trạng thái và lưu đè lên lại
-    let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    const idx = invoices.findIndex(inv => inv.Invoice_ID == id);
-    
-    if (idx !== -1) {
-        invoices[idx].Payment_Status = 'Đã thanh toán';
-        localStorage.setItem('invoices', JSON.stringify(invoices));
-        
-        // Gọi lại bảng để cập nhật màu chữ ngay lập tức
-        fetchAllInvoices(); 
-        alert('Xác nhận thu tiền thành công!');
-    } else {
-        alert('Lỗi: Không tìm thấy dữ liệu hóa đơn này.');
-    }
+    try {
+        const response = await fetch(`${API_BASE}/invoice/${id}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchAllInvoices(); // Tải lại bảng ngay lập tức
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi xử lý API:', error); }
 };
 
-// --- QUẢN LÝ HỘ KHẨU ---
+// --- QUẢN LÝ HỘ KHẨU & LỊCH SỬ CHUYỂN ĐI ---
 async function fetchHouseholds() {
     try {
-        const households = JSON.parse(localStorage.getItem('households') || '[]');
-        const tbody = document.getElementById('householdTableBody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
+        const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const households = await response.json();
+        
+        const tbodyActive = document.getElementById('householdTableBody');
+        const tbodyHistory = document.getElementById('moveOutHistoryBody');
+        if(!tbodyActive || !tbodyHistory) return;
+        
+        tbodyActive.innerHTML = '';
+        tbodyHistory.innerHTML = '';
 
-        if (households.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào.</td></tr>';
-        } else {
-            households.forEach(hh => {
-                const moveInDate = new Date(hh.Move_In_Date).toLocaleDateString('vi-VN');
-                const actionButton = hh.Status === 'Đang ở' 
-                    ? `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`
-                    : `<span style="color: #7f8c8d; font-style: italic;">Đã rời đi</span>`;
+        let hasActive = false;
+        let hasHistory = false;
 
-                const row = `
+        households.forEach(hh => {
+            const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
+
+            if (hh.Status === 'Đang ở') {
+                hasActive = true;
+                const actionButton = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                tbodyActive.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: ${hh.Status === 'Đang ở' ? '#2ecc71' : '#e74c3c'};">${hh.Status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
-            });
-        }
+            } else {
+                hasHistory = true;
+                tbodyHistory.innerHTML += `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
+                    </tr>
+                `;
+            }
+        });
+
+        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+
     } catch (error) { console.error('Lỗi kết nối:', error); }
 }
 
 window.markAsMovedOut = async function(id) {
-    if (!confirm('Bạn có chắc chắn muốn báo hộ này đã chuyển đi?')) return;
-    const households = JSON.parse(localStorage.getItem('households') || '[]');
-    const hh = households.find(h => h.Household_ID == id);
-    if (hh) {
-        hh.Status = 'Đã chuyển đi';
-        localStorage.setItem('households', JSON.stringify(households));
-
-        const lichSu = JSON.parse(localStorage.getItem('moveOutHistory') || '[]');
-        lichSu.push({
-            Household_ID: hh.Household_ID,
-            Room_Number: hh.Room_Number,
-            Owner_Name: hh.Owner_Name,
-            Move_In_Date: hh.Move_In_Date,
-            Move_Out_Date: new Date().toISOString()
+    if (!confirm('Bạn có chắc chắn muốn báo hộ này đã chuyển đi? Tài khoản Web của hộ này cũng sẽ bị vô hiệu hóa!')) return;
+    try {
+        const response = await fetch(`${API_BASE}/household/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-        localStorage.setItem('moveOutHistory', JSON.stringify(lichSu));
-    }
-    alert('Đã cập nhật trạng thái hộ khẩu!');
-    fetchHouseholds();
-    fetchMoveOutHistory();
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchHouseholds(); // Tự động load lại cả 2 bảng Hộ khẩu và Lịch sử
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi xử lý API:', error); }
 };
-
-function fetchMoveOutHistory() {
-    const tbody = document.getElementById('moveOutHistoryBody');
-    if (!tbody) return;
-    const lichSu = JSON.parse(localStorage.getItem('moveOutHistory') || '[]');
-    tbody.innerHTML = '';
-
-    if (lichSu.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
-        return;
-    }
-    lichSu.forEach(hh => {
-        const moveIn  = new Date(hh.Move_In_Date).toLocaleDateString('vi-VN');
-        const moveOut = new Date(hh.Move_Out_Date).toLocaleDateString('vi-VN');
-        tbody.innerHTML += `
-            <tr>
-                <td style="padding:10px;border:1px solid #ddd;text-align:center;">${hh.Room_Number}</td>
-                <td style="padding:10px;border:1px solid #ddd;">${hh.Owner_Name}</td>
-                <td style="padding:10px;border:1px solid #ddd;text-align:center;">${moveIn}</td>
-                <td style="padding:10px;border:1px solid #ddd;text-align:center;color:#e74c3c;font-weight:bold;">${moveOut}</td>
-            </tr>
-        `;
-    });
-}
 
 // --- DỊCH VỤ VÀ TẠM TRÚ ---
 async function fetchDeclarations() {
     try {
-        const declarations = JSON.parse(localStorage.getItem('declarations') || '[]');
+        const response = await fetch(`${API_BASE}/declarations`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const declarations = await response.json();
+        
         const tbody = document.getElementById('declarationTableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -274,8 +225,8 @@ async function fetchDeclarations() {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Không có đơn nào đang chờ duyệt.</td></tr>';
         } else {
             declarations.forEach(dec => {
-                const startDate = new Date(dec.Start_Date).toLocaleDateString('vi-VN');
-                const endDate = new Date(dec.End_Date).toLocaleDateString('vi-VN');
+                const startDate = dec.Start_Date ? new Date(dec.Start_Date).toLocaleDateString('vi-VN') : '';
+                const endDate = dec.End_Date ? new Date(dec.End_Date).toLocaleDateString('vi-VN') : '';
                 const loai = dec.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
 
                 tbody.innerHTML += `
@@ -296,9 +247,29 @@ async function fetchDeclarations() {
     } catch (error) { console.error('Lỗi kết nối:', error); }
 }
 
+window.updateDeclaration = async function(id, status) {
+    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} đơn này?`)) return;
+    try {
+        const response = await fetch(`${API_BASE}/declaration/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: status })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchDeclarations(); 
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi API:', error); }
+};
+
 async function fetchAllRegisteredServices() {
     try {
-        const services = JSON.parse(localStorage.getItem('registeredServices') || '[]');
+        const response = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const services = await response.json();
+        
         const tbody = document.getElementById('allServicesTableBody');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -307,7 +278,7 @@ async function fetchAllRegisteredServices() {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hộ nào đăng ký dịch vụ.</td></tr>';
         } else {
             services.forEach(svc => {
-                const startDate = new Date(svc.Start_Date).toLocaleDateString('vi-VN');
+                const startDate = svc.Start_Date ? new Date(svc.Start_Date).toLocaleDateString('vi-VN') : '';
                 tbody.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${svc.Room_Number}</td>
@@ -324,8 +295,9 @@ async function fetchAllRegisteredServices() {
 
 async function fetchServiceRequests() {
     try {
-        const requests = JSON.parse(localStorage.getItem('serviceRequests') || '[]'); 
-        const pending = requests.filter(r => !r.Status || r.Status === 'Chờ duyệt');
+        const response = await fetch(`${API_BASE}/service-requests`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const pending = await response.json();
+        
         const tbody = document.getElementById('bangDuyetDichVu'); 
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -334,18 +306,18 @@ async function fetchServiceRequests() {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Không có yêu cầu nào chờ duyệt.</td></tr>';
         } else {
             pending.forEach(req => {
-                const sentDate = new Date(req.Created_At).toLocaleDateString('vi-VN');
+                const sentDate = req.Start_Date ? new Date(req.Start_Date).toLocaleDateString('vi-VN') : '';
                 tbody.innerHTML += `
-                    <tr id="req-${req.Request_ID}">
+                    <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${req.Request_ID}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${sentDate}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${req.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${req.Room_Number}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;"><strong>${req.Service_Name}</strong></td>
-                        <td style="padding: 10px; border: 1px solid #ddd; white-space: pre-line;">${req.Details}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;" class="trang-thai">
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">SL: ${req.Quantity || 1}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                             <span style="color: #e67e22; font-weight: bold;">Chờ duyệt</span>
                         </td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;" class="hanh-dong">
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                             <button onclick="handleServiceRequest(${req.Request_ID}, 'Đã duyệt')" style="background: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; margin-right: 5px;">Duyệt</button>
                             <button onclick="handleServiceRequest(${req.Request_ID}, 'Từ chối')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button>
                         </td>
@@ -356,39 +328,30 @@ async function fetchServiceRequests() {
     } catch (error) { console.error('Lỗi tải yêu cầu dịch vụ:', error); }
 }
 
-window.handleServiceRequest = function(id, status) {
-    let reason = "";
-    if (status === 'Từ chối') {
-        reason = prompt("Nhập lý do từ chối:");
-        if (reason === null) return;
-    }
-    const requests = JSON.parse(localStorage.getItem('serviceRequests') || '[]');
-    const idx = requests.findIndex(r => r.Request_ID == id);
-    if (idx !== -1) {
-        requests[idx].Status = status;
-        requests[idx].Reason = reason;
-        localStorage.setItem('serviceRequests', JSON.stringify(requests));
-    }
-    fetchServiceRequests(); // Load lại bảng để ẩn dòng đã duyệt
-};
-
-window.updateDeclaration = async function(id, status) {
-    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} đơn này?`)) return;
-    // Bỏ qua Fetch API lỗi, trực tiếp xóa ở mock data hiển thị UI
-    const declarations = JSON.parse(localStorage.getItem('declarations') || '[]');
-    const newDecs = declarations.filter(d => d.Declaration_ID != id);
-    localStorage.setItem('declarations', JSON.stringify(newDecs));
-    
-    alert(`Đã ${status.toLowerCase()} thành công!`);
-    fetchDeclarations(); // Load lại bảng
+window.handleServiceRequest = async function(id, status) {
+    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} yêu cầu đăng ký này?`)) return;
+    try {
+        const response = await fetch(`${API_BASE}/service-request/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: status })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchServiceRequests(); 
+            fetchAllRegisteredServices(); // Load lại luôn bảng dịch vụ đang dùng nếu vừa duyệt
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi API:', error); }
 };
 
 // ==================================================
-// 5. GỌI TẢI DỮ LIỆU KHI KHỞI ĐỘNG
+// 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
 // ==================================================
 fetchAllInvoices();
-fetchHouseholds();
-fetchMoveOutHistory();
+fetchHouseholds(); 
 fetchDeclarations();
 fetchAllRegisteredServices();
 fetchServiceRequests();
