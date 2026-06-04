@@ -182,3 +182,13 @@ INSERT Services (Service_ID, Service_Name, Unit_Price, Calculation_Unit, Is_Mand
 INSERT Services (Service_ID, Service_Name, Unit_Price, Calculation_Unit, Is_Mandatory) VALUES (5, N'Internet Cáp quang', 250000.00, N'Tháng', 0)
 SET IDENTITY_INSERT Services OFF;
 GO
+
+-- 1. Thêm cột Trạng thái cho Đăng ký dịch vụ
+ALTER TABLE ServiceRegistrations 
+ADD Status NVARCHAR(30) DEFAULT N'Chờ duyệt';
+GO
+
+-- 2. Thêm cột Ngày tạo để biết cư dân gửi yêu cầu lúc nào
+ALTER TABLE ServiceRegistrations 
+ADD Created_At DATETIME DEFAULT GETDATE();
+GO

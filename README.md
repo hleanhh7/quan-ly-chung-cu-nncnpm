@@ -93,7 +93,8 @@ mk: admin123
 với tài khoản register thì cũng có nhiều cái
 
 tk: cudan_test101
-mk: 123456
+mk: 123456 
+hoặc tk : cudan-moi , mk ; 123456
 
 
 ---
