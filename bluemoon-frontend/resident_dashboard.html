@@ -76,27 +76,191 @@
         </form>
     </div>
 
+    <div class="card">
+    <h3>Lịch Sử Khai Báo Của Tôi</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Loại</th>
+                <th>Từ ngày</th>
+                <th>Đến ngày</th>
+                <th>Lý do</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody id="bangLichSuKhaiBao">
+            <tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>
+        </tbody>
+    </table>
+</div>
+
 
     <div class="card">
-        <h3>Đăng ký Dịch vụ Chung cư</h3>
-        <form id="serviceForm">
+        <h3>Gửi Yêu Cầu / Đăng ký Dịch vụ (Cần BQL Duyệt)</h3>
+        <form id="formDangKyDichVu" onsubmit="guiYeuCau(event)">
             <div class="form-group">
-                <label>Chọn dịch vụ</label>
-                <select id="serviceSelect" required>
-                    <option value="">-- Đang tải danh sách dịch vụ --</option>
+                <label>Loại Dịch Vụ / Yêu Cầu</label>
+                <select id="loaiDichVu" onchange="thayDoiGoiY()" required>
+                    <option value="">-- Vui lòng chọn loại dịch vụ --</option>
+                    <optgroup label="Quản lý Phương Tiện">
+                        <option value="Đăng ký gửi xe máy">Đăng ký gửi xe máy</option>
+                        <option value="Đăng ký gửi ô tô">Đăng ký gửi ô tô</option>
+                        <option value="Đăng ký xe đạp/xe điện">Đăng ký xe đạp/xe điện</option>
+                    </optgroup>
+                    <optgroup label="Tiện ích & Sinh hoạt">
+                        <option value="Đăng ký sử dụng khu BBQ/Sự kiện">Đăng ký sử dụng khu BBQ / Tổ chức sự kiện</option>
+                        <option value="Đăng ký sử dụng Bể bơi/Gym">Đăng ký sử dụng Bể bơi / Phòng Gym</option>
+                    </optgroup>
+                    <optgroup label="Thi công & Vận chuyển">
+                        <option value="Đăng ký thi công/sửa chữa">Đăng ký thi công / Sửa chữa căn hộ</option>
+                        <option value="Đăng ký chuyển đồ">Đăng ký chuyển đồ (Chuyển đến / Chuyển đi)</option>
+                        <option value="Yêu cầu sửa chữa kỹ thuật">Yêu cầu hỗ trợ kỹ thuật (Điện, Nước, Internet)</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="form-group">
-                <label>Số lượng (VD: Số chiếc xe máy)</label>
-                <input type="number" id="serviceQuantity" value="1" min="1" required>
+                <label>Chi tiết yêu cầu</label>
+                <textarea id="chiTietYeuCau" rows="4" style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif;" required placeholder="Vui lòng chọn loại dịch vụ ở trên để xem gợi ý..."></textarea>
             </div>
-            <div class="form-group">
-                <label>Ngày bắt đầu sử dụng</label>
-                <input type="date" id="serviceStartDate" required>
-            </div>
-            <button type="submit" class="btn-submit">Xác nhận đăng ký</button>
+            <button type="submit" class="btn-submit">Gửi Yêu Cầu Cho BQL</button>
         </form>
     </div>
+
+    <div class="card">
+        <h3>Lịch Sử Yêu Cầu Của Tôi</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Ngày Gửi</th>
+                    <th>Loại Dịch Vụ</th>
+                    <th>Chi Tiết</th>
+                    <th>Trạng Thái</th>
+                </tr>
+            </thead>
+            <tbody id="bangLichSuYeuCau">
+                
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 1. Hàm tự động đổi Placeholder dựa trên Select
+        function thayDoiGoiY() {
+            let loai = document.getElementById('loaiDichVu').value;
+            let txtChiTiet = document.getElementById('chiTietYeuCau');
+            
+            if (loai.includes("xe")) {
+                txtChiTiet.placeholder = "- Loại xe (Honda SH, Vios...)\n- Màu sắc:\n- Biển số xe:\n- Tên chủ xe:";
+            } else if (loai.includes("BBQ") || loai.includes("Bể bơi")) {
+                txtChiTiet.placeholder = "- Thời gian sử dụng (Ngày, Giờ bắt đầu - Giờ kết thúc):\n- Số lượng người tham gia dự kiến:\n- Yêu cầu hỗ trợ thêm (nếu có):";
+            } else if (loai.includes("thi công") || loai.includes("sửa chữa")) {
+                txtChiTiet.placeholder = "- Hạng mục cần thi công/sửa chữa:\n- Đơn vị thi công (Tên, SĐT liên hệ):\n- Thời gian dự kiến hoàn thành:";
+            } else if (loai.includes("chuyển đồ")) {
+                txtChiTiet.placeholder = "- Ngày giờ chuyển:\n- Chuyển đến hay chuyển đi:\n- Thông tin xe tải (Biển số xe, nếu có):";
+            } else {
+                txtChiTiet.placeholder = "Nhập thông tin chi tiết cho yêu cầu của ông/bà...";
+            }
+        }
+
+        // 2. Hàm xử lý Gửi form -> Đẩy xuống bảng chờ duyệt
+        function guiYeuCau(event) {
+            event.preventDefault();
+            
+            let loaiDV = document.getElementById('loaiDichVu').value;
+            let chiTiet = document.getElementById('chiTietYeuCau').value;
+            
+            let today = new Date();
+            let ngayGui = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
+
+            // Lưu vào localStorage để admin thấy
+const dsYeuCau = JSON.parse(localStorage.getItem('serviceRequests') || '[]');
+dsYeuCau.push({
+    Request_ID: Date.now(),
+    Room_Number: localStorage.getItem('household_id') || 'N/A',
+    Service_Name: loaiDV,
+    Details: chiTiet,
+    Created_At: new Date().toISOString()
+});
+localStorage.setItem('serviceRequests', JSON.stringify(dsYeuCau));
+
+            alert('Đã gửi yêu cầu thành công! Vui lòng chờ Ban quản lý xét duyệt.');
+
+            
+            loadLichSu();
+
+            // Reset form
+            document.getElementById('formDangKyDichVu').reset();
+            document.getElementById('chiTietYeuCau').placeholder = "Vui lòng chọn loại dịch vụ ở trên để xem gợi ý...";
+        }
+
+        function loadLichSu() {
+    const ds = JSON.parse(localStorage.getItem('serviceRequests') || '[]');
+    const tbody = document.getElementById('bangLichSuYeuCau');
+    tbody.innerHTML = '';
+    if (ds.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có yêu cầu nào.</td></tr>';
+        return;
+    }
+    ds.forEach(req => {
+        const ngay = new Date(req.Created_At).toLocaleDateString('vi-VN');
+        tbody.innerHTML += `<tr>
+            <td>${ngay}</td>
+            <td><strong>${req.Service_Name}</strong></td>
+            <td style="white-space:pre-line;text-align:left;">${req.Details}</td>
+            <td style="color:${
+    req.Status === 'Đã duyệt' ? '#27ae60' : 
+    req.Status === 'Từ chối' ? '#e74c3c' : 
+    '#f39c12'
+};font-weight:bold;">${req.Status || 'Chờ duyệt'}</td>
+        </tr>`;
+    });
+}
+loadLichSu();
+
+document.getElementById('declarationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        ID: Date.now(),
+        Declaration_Type: document.getElementById('decType').value,
+        Start_Date: document.getElementById('startDate').value,
+        End_Date: document.getElementById('endDate').value,
+        Reason: document.getElementById('reason').value,
+        Status: 'Chờ duyệt',
+        Created_At: new Date().toISOString()
+    };
+    const ds = JSON.parse(localStorage.getItem('declarations') || '[]');
+    ds.push(data);
+    localStorage.setItem('declarations', JSON.stringify(ds));
+    alert('Gửi khai báo thành công!');
+    document.getElementById('declarationForm').reset();
+    loadLichSuKhaiBao();
+});
+
+function loadLichSuKhaiBao() {
+    const ds = JSON.parse(localStorage.getItem('declarations') || '[]');
+    const tbody = document.getElementById('bangLichSuKhaiBao');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (ds.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có khai báo nào.</td></tr>';
+        return;
+    }
+    ds.forEach(dec => {
+        const loai = dec.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
+        const startDate = new Date(dec.Start_Date).toLocaleDateString('vi-VN');
+        const endDate = new Date(dec.End_Date).toLocaleDateString('vi-VN');
+        const color = dec.Status === 'Đã duyệt' ? '#27ae60' : dec.Status === 'Từ chối' ? '#e74c3c' : '#f39c12';
+        tbody.innerHTML += `<tr>
+            <td>${loai}</td>
+            <td>${startDate}</td>
+            <td>${endDate}</td>
+            <td>${dec.Reason}</td>
+            <td style="color:${color};font-weight:bold;">${dec.Status}</td>
+        </tr>`;
+    });
+}
+loadLichSuKhaiBao();
+    </script>
 
     <div class="card">
         <h3>Dịch vụ đang sử dụng</h3>

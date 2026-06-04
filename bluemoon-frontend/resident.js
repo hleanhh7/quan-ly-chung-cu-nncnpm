@@ -55,34 +55,22 @@ document.getElementById('declarationForm').addEventListener('submit', async func
     e.preventDefault();
 
     const data = {
-        Resident_ID: document.getElementById('residentId').value,
+        ID: Date.now(),
         Declaration_Type: document.getElementById('decType').value,
         Start_Date: document.getElementById('startDate').value,
         End_Date: document.getElementById('endDate').value,
-        Reason: document.getElementById('reason').value
+        Reason: document.getElementById('reason').value,
+        Status: 'Chờ duyệt',
+        Created_At: new Date().toISOString()
     };
 
-    try {
-        const response = await fetch('http://localhost:5000/api/resident/declaration', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        });
+    const ds = JSON.parse(localStorage.getItem('declarations') || '[]');
+    ds.push(data);
+    localStorage.setItem('declarations', JSON.stringify(ds));
 
-        const result = await response.json();
-
-        if (response.ok) {
-            alert('Gửi khai báo thành công!');
-            document.getElementById('declarationForm').reset(); 
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
+    alert('Gửi khai báo thành công!');
+    document.getElementById('declarationForm').reset();
+    loadLichSuKhaiBao();
 });
 
 
@@ -116,18 +104,21 @@ async function fetchServices() {
 fetchServices();
 
 // 4.2 XỬ LÝ: Gửi form đăng ký dịch vụ
+// Thay thế hàm 4.2 cũ bằng hàm này
 document.getElementById('serviceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
     const data = {
-        household_id: household_id, // ID của hộ gia đình
+        household_id: household_id,
         service_id: document.getElementById('serviceSelect').value,
         quantity: document.getElementById('serviceQuantity').value,
-        start_date: document.getElementById('serviceStartDate').value
+        start_date: document.getElementById('serviceStartDate').value,
+        status: 'Chờ duyệt' // Luôn để trạng thái chờ
     };
 
     try {
-        const response = await fetch('http://localhost:5000/api/services/register', {
+        // Gọi API gửi yêu cầu (Ông cần tạo API này ở backend: POST /api/services/request)
+        const response = await fetch('http://localhost:5000/api/services/request', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -136,17 +127,15 @@ document.getElementById('serviceForm').addEventListener('submit', async function
             body: JSON.stringify(data)
         });
 
-        const result = await response.json();
-
         if (response.ok) {
-            alert('Thành công: ' + result.message);
-            document.getElementById('serviceForm').reset(); 
-            fetchMyServices(); // Tự động load lại bảng dịch vụ đang dùng
+            alert('Đăng ký thành công! Vui lòng chờ Ban quản lý xét duyệt.');
+            document.getElementById('serviceForm').reset();
+            // Tải lại bảng trạng thái dịch vụ (ông nên làm 1 bảng riêng hiển thị các yêu cầu đang chờ)
         } else {
-            alert('Lỗi: ' + result.message);
+            alert('Lỗi đăng ký dịch vụ.');
         }
     } catch (error) {
-        console.error('Lỗi kết nối:', error);
+        console.error('Lỗi:', error);
     }
 });
 
