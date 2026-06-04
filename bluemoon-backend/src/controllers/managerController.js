@@ -30,35 +30,7 @@ const createHousehold = async (req, res) => {
 };
 
 // API: Thêm nhân khẩu vào một hộ
-const addResident = async (req, res) => {
-    try {
-        const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
-        const request = new sql.Request();
 
-        const checkHousehold = await request
-            .input('Household_ID', sql.Int, Household_ID)
-            .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
-
-        if (checkHousehold.recordset.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu này!' });
-        }
-
-        await request
-            .input('Full_Name', sql.NVarChar, Full_Name)
-            .input('Identity_Card', sql.VarChar, Identity_Card)
-            .input('Date_Of_Birth', sql.Date, Date_Of_Birth)
-            .input('Phone_Number', sql.VarChar, Phone_Number)
-            .input('Relation_With_Owner', sql.NVarChar, Relation_With_Owner)
-            .query(`
-                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner) 
-                VALUES (@Household_ID, @Full_Name, @Identity_Card, @Date_Of_Birth, @Phone_Number, @Relation_With_Owner)
-            `);
-
-        res.status(201).json({ message: 'Thêm nhân khẩu thành công!' });
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi server', error: error.message });
-    }
-};
 
 // API: Tạo hóa đơn hàng tháng cho hộ khẩu
 const createInvoice = async (req, res) => {
@@ -316,7 +288,29 @@ const updateFeedbackStatus = async (req, res) => {
         res.status(500).json({ message: 'Loi khong the cap nhat trang thai phan anh', error: error.message });
     }
 };
+// Thêm lại hàm addResident nếu lúc nãy lỡ xóa mất
+const addResident = async (req, res) => {
+    try {
+        const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
+        
+        const request = new sql.Request();
+        await request
+            .input('Household_ID', sql.Int, Household_ID)
+            .input('Full_Name', sql.NVarChar, Full_Name)
+            .input('Identity_Card', sql.VarChar, Identity_Card)
+            .input('Date_Of_Birth', sql.Date, Date_Of_Birth)
+            .input('Phone_Number', sql.VarChar, Phone_Number)
+            .input('Relation_With_Owner', sql.NVarChar, Relation_With_Owner)
+            .query(`
+                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner)
+                VALUES (@Household_ID, @Full_Name, @Identity_Card, @Date_Of_Birth, @Phone_Number, @Relation_With_Owner)
+            `);
 
+        res.status(201).json({ message: 'Thêm nhân khẩu thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 

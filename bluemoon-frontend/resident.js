@@ -112,13 +112,11 @@ document.getElementById('serviceForm').addEventListener('submit', async function
         household_id: household_id,
         service_id: document.getElementById('serviceSelect').value,
         quantity: document.getElementById('serviceQuantity').value,
-        start_date: document.getElementById('serviceStartDate').value,
-        status: 'Chờ duyệt' // Luôn để trạng thái chờ
+        start_date: document.getElementById('serviceStartDate').value
     };
 
     try {
-        // Gọi API gửi yêu cầu (Ông cần tạo API này ở backend: POST /api/services/request)
-        const response = await fetch('http://localhost:5000/api/services/request', {
+        const response = await fetch('http://localhost:5000/api/services/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,17 +125,21 @@ document.getElementById('serviceForm').addEventListener('submit', async function
             body: JSON.stringify(data)
         });
 
+        const result = await response.json();
+
         if (response.ok) {
             alert('Đăng ký thành công! Vui lòng chờ Ban quản lý xét duyệt.');
             document.getElementById('serviceForm').reset();
-            // Tải lại bảng trạng thái dịch vụ (ông nên làm 1 bảng riêng hiển thị các yêu cầu đang chờ)
+            fetchMyServices();
         } else {
-            alert('Lỗi đăng ký dịch vụ.');
+            alert(result.message || 'Lỗi đăng ký dịch vụ');
         }
     } catch (error) {
         console.error('Lỗi:', error);
+        alert('Không thể kết nối máy chủ');
     }
 });
+
 
 // 4.3 HÀM: Tải danh sách dịch vụ đang sử dụng
 async function fetchMyServices() {
@@ -185,3 +187,94 @@ document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('household_id');
     window.location.href = 'index.html';
 });
+
+// ========================================================
+// XỬ LÝ ĐẶT LỊCH TIỆN ÍCH (FACILITY BOOKING)
+// ========================================================
+
+const API_BOOKING_URL = 'http://localhost:5000/api/services/facility-bookings';
+
+// 1. Hàm load lịch sử đặt chỗ của hộ gia đình
+async function loadMyBookings() {
+    try {
+        const response = await fetch(API_BOOKING_URL, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}` // Token được kế thừa từ đầu file resident.js
+            }
+        });
+        
+        if (response.ok) {
+            const bookings = await response.json();
+            const tbody = document.getElementById('bookingList');
+            tbody.innerHTML = ''; // Xóa dữ liệu cũ
+            
+            bookings.forEach(b => {
+                // Cắt lấy phần ngày tháng năm cho đẹp (bỏ đuôi giờ loằng ngoằng)
+                const dateOnly = b.Booking_Date.split('T')[0];
+                
+                // Tô màu trạng thái
+                let statusColor = 'orange';
+                if (b.Status === 'Đã xác nhận' || b.Status === 'Approved') statusColor = 'green';
+                if (b.Status === 'Từ chối' || b.Status === 'Rejected') statusColor = 'red';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px;">${b.Facility_Name}</td>
+                        <td>${dateOnly}</td>
+                        <td>${b.Time_Slot}</td>
+                        <td style="color: ${statusColor}; font-weight: bold;">${b.Status}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Lỗi khi load lịch sử đặt chỗ:', error);
+    }
+}
+fetchMyServices(); 
+
+
+// ==================================================
+// 5. XỬ LÝ ĐĂNG XUẤT (Nằm dưới cùng)
+// ==================================================
+document.getElementById('btnLogout').addEventListener('click', function() {
+    localStorage.removeItem('bluemoon_token');
+    localStorage.removeItem('bluemoon_role');
+    localStorage.removeItem('household_id');
+    window.location.href = 'index.html';
+});
+// 2. Bắt sự kiện khi cư dân bấm nút "Đặt lịch ngay"
+document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+    e.preventDefault(); // Ngăn trang tự reload
+    
+    const facility_name = document.getElementById('facilityName').value;
+    const booking_date = document.getElementById('bookingDate').value;
+    const time_slot = document.getElementById('timeSlot').value;
+
+    try {
+        const response = await fetch(API_BOOKING_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ facility_name, booking_date, time_slot })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('🎉 Đặt lịch thành công! Vui lòng chờ BQL xác nhận.');
+            loadMyBookings(); // Tải lại bảng ngay lập tức để thấy đơn vừa đặt
+        } else {
+            alert('❌ Lỗi: ' + data.message); // Báo lỗi nếu trùng lịch
+        }
+    } catch (error) {
+        console.error('Lỗi khi gửi yêu cầu đặt lịch:', error);
+        alert('Không thể kết nối với máy chủ!');
+    }
+});
+
+// 3. Gọi hàm load bảng lịch sử ngay khi trang vừa tải xong
+loadMyBookings();

@@ -30,6 +30,16 @@
         <button class="btn-logout" id="btnLogout">Đăng xuất</button>
     </div>
 
+
+<div class="card" style="text-align: center; padding: 15px;">
+        <p style="margin: 0 0 10px 0; font-weight: bold; color: #555;">Bạn cần khai báo thông tin cư trú?</p>
+        <a href="declaration.html" style="display: inline-block; background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            Đi đến trang Khai báo Hành chính
+        </a>
+    </div>
+
+
+
     <div class="card">
         <h3>Lịch sử Hóa đơn Dịch vụ</h3>
         <table>
@@ -46,35 +56,7 @@
         </table>
     </div>
 
-    <div class="card">
-        <h3>Khai báo Tạm trú / Tạm vắng</h3>
-        <form id="declarationForm">
-            <div class="form-group">
-                <label>Mã Nhân khẩu (Resident ID của bạn)</label>
-                <input type="number" id="residentId" required>
-            </div>
-            <div class="form-group">
-                <label>Loại khai báo</label>
-                <select id="decType" required>
-                    <option value="TamTru">Tạm trú</option>
-                    <option value="TamVang">Tạm vắng</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Từ ngày</label>
-                <input type="date" id="startDate" required>
-            </div>
-            <div class="form-group">
-                <label>Đến ngày</label>
-                <input type="date" id="endDate" required>
-            </div>
-            <div class="form-group">
-                <label>Lý do</label>
-                <input type="text" id="reason" placeholder="Ví dụ: Về quê, Công tác..." required>
-            </div>
-            <button type="submit" class="btn-submit">Gửi khai báo</button>
-        </form>
-    </div>
+
 
     <div class="card">
     <h3>Lịch Sử Khai Báo Của Tôi</h3>
@@ -278,6 +260,73 @@ loadLichSuKhaiBao();
             </tbody>
         </table>
     </div>
+    <div class="card">
+        <h3>Dịch vụ đang sử dụng</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên dịch vụ</th>
+                    <th>Số lượng</th>
+                    <th>Ngày bắt đầu</th>
+                    <th>Đơn giá</th>
+                </tr>
+            </thead>
+            <tbody id="myServicesTableBody">
+                <tr><td colspan="4">Đang tải dữ liệu...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+        <div class="card" style="margin-top: 30px;">
+            <h3>📅 Đặt lịch tiện ích công cộng (BBQ, Tennis, Gym)</h3>
+            
+            <form id="bookingForm" style="display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Chọn tiện ích:</label><br>
+                    <select id="facilityName" required style="padding: 8px;">
+                        <option value="Bếp BBQ số 1">Bếp BBQ số 1</option>
+                        <option value="Bếp BBQ số 2">Bếp BBQ số 2</option>
+                        <option value="Sân Tennis">Sân Tennis</option>
+                        <option value="Phòng Gym VIP">Phòng Gym VIP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ngày sử dụng:</label><br>
+                    <input type="date" id="bookingDate" required style="padding: 8px;">
+                </div>
+                <div class="form-group">
+                    <label>Khung giờ:</label><br>
+                    <select id="timeSlot" required style="padding: 8px;">
+                        <option value="08:00 - 10:00">08:00 - 10:00</option>
+                        <option value="16:00 - 18:00">16:00 - 18:00</option>
+                        <option value="18:00 - 20:00">18:00 - 20:00</option>
+                        <option value="20:00 - 22:00">20:00 - 22:00</option>
+                    </select>
+                </div>
+                <button type="submit" style="padding: 9px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Đặt lịch ngay
+                </button>
+            </form>
+
+            <h4>Lịch sử đặt chỗ của nhà bạn</h4>
+            <table border="1" width="100%" style="border-collapse: collapse; text-align: left;">
+                <thead style="background-color: #f4f4f4;">
+                    <tr>
+                        <th style="padding: 10px;">Tên tiện ích</th>
+                        <th style="padding: 10px;">Ngày sử dụng</th>
+                        <th style="padding: 10px;">Khung giờ</th>
+                        <th style="padding: 10px;">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingList">
+                    <tr><td colspan="4" style="text-align: center;">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <script src="resident.js"></script>
+    </body>
+    </html>
+
 
     <script src="resident.js"></script>
 </body>
