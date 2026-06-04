@@ -187,6 +187,93 @@ async function fetchMyServices() {
 fetchMyServices(); 
 
 
+
+// Cấu hình đường dẫn API (Đảm bảo khớp với thư mục routes của bạn)
+const RESIDENT_API_URL = 'http://localhost:5000/api/resident';
+
+// =========================================================================
+// 1. GỌI API: TẢI VÀ HIỂN THỊ BẢNG TIN
+// =========================================================================
+async function fetchAnnouncements() {
+    try {
+        const response = await fetch(`${RESIDENT_API_URL}/announcements`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const announcements = await response.json();
+        const listContainer = document.getElementById('announcementList');
+        listContainer.innerHTML = ''; 
+
+        if (response.ok) {
+            if (announcements.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Hiện chưa có thông báo nào từ Ban quản lý.</p>';
+                return;
+            }
+
+            announcements.forEach(ann => {
+                const date = new Date(ann.Created_At).toLocaleString('vi-VN');
+                
+                const item = `
+                    <div style="border-bottom: 1px solid #ddd; padding-bottom: 12px; margin-bottom: 12px;">
+                        <h4 style="color: #2980b9; margin: 0 0 8px 0; font-size: 16px;">📌 ${ann.Title}</h4>
+                        <p style="margin: 0 0 8px 0; line-height: 1.5; color: #333;">${ann.Content}</p>
+                        <small style="color: #95a5a6; font-style: italic;">🕒 Đăng lúc: ${date}</small>
+                    </div>
+                `;
+                listContainer.innerHTML += item;
+            });
+        } else {
+            console.error('Lỗi từ Server:', announcements.message);
+        }
+    } catch (error) {
+        console.error('Lỗi kết nối khi tải bảng tin:', error);
+        document.getElementById('announcementList').innerHTML = '<p style="color: red; text-align: center;">Không thể kết nối đến máy chủ.</p>';
+    }
+}
+
+// =========================================================================
+// 2. GỌI API: GỬI PHẢN ÁNH / YÊU CẦU
+// =========================================================================
+document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Lấy dữ liệu và đảm bảo key là "Title" và "Content" (viết hoa chữ đầu) để khớp với Backend
+    const payload = {
+        Title: document.getElementById('fbTitle').value,
+        Content: document.getElementById('fbContent').value
+    };
+
+    try {
+        // Gọi đến endpoint /feedbacks như trong router bạn đã định nghĩa
+        const response = await fetch(`${RESIDENT_API_URL}/feedbacks`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Hiển thị câu: "Gui phan anh thanh cong! Ban quan ly da tiep nhan yeu cau."
+            alert(result.message); 
+            document.getElementById('feedbackForm').reset(); // Làm sạch form
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Lỗi khi gửi phản ánh:', error);
+        alert('Lỗi mạng: Không thể gửi yêu cầu đến máy chủ!');
+    }
+});
+
+// Khởi chạy việc tải bảng tin ngay khi Cư dân mở trang
+fetchAnnouncements();
+
+
 // ==================================================
 // 5. XỬ LÝ ĐĂNG XUẤT (Nằm dưới cùng)
 // ==================================================

@@ -367,3 +367,138 @@ async function fetchAllRegisteredServices() {
 }
 
 fetchAllRegisteredServices(); // Gọi hàm khi load trang
+
+
+// Cấu hình đường dẫn API (Đảm bảo cổng 5000 hoặc cổng máy chủ Backend đang chạy)
+const MANAGER_API_URL = 'http://localhost:5000/api/manager';
+
+// =========================================================================
+// GỌI API: TẠO THÔNG BÁO MỚI
+// =========================================================================
+document.getElementById('announcementForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Lấy dữ liệu và định dạng đúng Key viết hoa như Backend yêu cầu
+    const payload = {
+        Title: document.getElementById('annTitle').value,
+        Content: document.getElementById('annContent').value
+    };
+
+    try {
+        const response = await fetch(`${MANAGER_API_URL}/announcements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(result.message); // Hiển thị câu "Da phat hanh thong bao..." từ Backend
+            document.getElementById('announcementForm').reset();
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Lỗi khi đăng thông báo:', error);
+        alert('Lỗi kết nối đến máy chủ!');
+    }
+});
+
+// =========================================================================
+// GỌI API: LẤY DANH SÁCH VÀ HIỂN THỊ PHẢN ÁNH
+// =========================================================================
+async function fetchAllFeedbacks() {
+    try {
+        const response = await fetch(`${MANAGER_API_URL}/feedbacks`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const feedbacks = await response.json();
+        const tbody = document.getElementById('feedbackTableBody');
+        tbody.innerHTML = '';
+
+        if (response.ok) {
+            if (feedbacks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;">Chưa có phản ánh nào từ cư dân.</td></tr>';
+                return;
+            }
+
+            feedbacks.forEach(fb => {
+                // Hiển thị ngày giờ
+                const date = new Date(fb.Created_At).toLocaleString('vi-VN');
+                
+                // Cài đặt màu sắc và nút bấm dựa theo trạng thái
+                let statusBadge = '';
+                let actionButton = '';
+
+                if (fb.Status === 'Đã hoàn thành' || fb.Status === 'Đã xử lý') {
+                    statusBadge = `<span style="color: #27ae60; font-weight: bold;">${fb.Status}</span>`;
+                    actionButton = `<span style="color: #7f8c8d; font-style: italic;">Không có hành động</span>`;
+                } else {
+                    statusBadge = `<span style="color: #e74c3c; font-weight: bold;">${fb.Status || 'Chờ xử lý'}</span>`;
+                    actionButton = `<button onclick="updateFeedbackStatus(${fb.Feedback_ID}, 'Đã hoàn thành')" 
+                                     style="background-color: #2ecc71; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                                     ✔ Đánh dấu xong
+                                     </button>`;
+                }
+
+                // Render dữ liệu ra bảng
+                const row = `
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${fb.Room_Number}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd;">
+                            <strong style="color: #2980b9;">${fb.Title}</strong><br>
+                            <span style="font-size: 14px; color: #555;">${fb.Content}</span>
+                        </td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${date}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${statusBadge}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        } else {
+            console.error('Lỗi từ Server:', feedbacks.message);
+        }
+    } catch (error) {
+        console.error('Lỗi khi tải danh sách phản ánh:', error);
+    }
+}
+
+// =========================================================================
+// GỌI API: CẬP NHẬT TRẠNG THÁI PHẢN ÁNH
+// =========================================================================
+window.updateFeedbackStatus = async function(feedbackId, newStatus) {
+    if (!confirm(`Bạn muốn đổi trạng thái phản ánh này thành "${newStatus}"?`)) return;
+
+    try {
+        const response = await fetch(`${MANAGER_API_URL}/feedbacks/${feedbackId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            // Gửi key Status viết hoa chuẩn khớp với backend
+            body: JSON.stringify({ Status: newStatus })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(result.message); // "Da cap nhat tien do xu ly phan anh thanh cong!"
+            fetchAllFeedbacks();   // Load lại bảng ngay lập tức để cập nhật giao diện
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Lỗi kết nối khi cập nhật:', error);
+    }
+};
+
+// Khởi chạy việc tải danh sách phản ánh ngay khi trang web mở lên
+fetchAllFeedbacks();

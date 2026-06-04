@@ -201,6 +201,48 @@
                 <button type="submit" class="btn-submit">Tạo Hóa Đơn</button>
             </form>
         </div>
+
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>📢 Phát hành Thông báo & Truyền thông</h3>
+            <form id="announcementForm">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">Tiêu đề thông báo</label>
+                    <input type="text" id="annTitle"
+                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+                        placeholder="Ví dụ: Lịch cắt điện luân phiên..." required>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">Nội dung chi tiết</label>
+                    <textarea id="annContent" rows="4"
+                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+                        placeholder="Nhập nội dung cần truyền thông..." required></textarea>
+                </div>
+                <button type="submit"
+                    style="background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Đăng
+                    Thông Báo</button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>🛠 Tiếp nhận Phản ánh & Khiếu nại từ Cư dân</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <thead>
+                    <tr style="background-color: #2c3e50; color: white;">
+                        <th style="padding: 12px; border: 1px solid #ddd;">Phòng</th>
+                        <th style="padding: 12px; border: 1px solid #ddd; width: 40%;">Nội dung phản ánh</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Ngày gửi</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Trạng thái</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="feedbackTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 15px;">Đang tải danh sách...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
 
