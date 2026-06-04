@@ -81,6 +81,16 @@ document.getElementById('formAccount').addEventListener('submit', function(e) {
     callManagerApi(`${API_BASE}/account`, data, 'formAccount');
 });
 
+// Phát Thông Báo
+document.getElementById('formAnnouncement').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        Title: document.getElementById('annTitle').value,
+        Content: document.getElementById('annContent').value
+    };
+    callManagerApi(`${API_BASE}/announcements`, data, 'formAnnouncement');
+});
+
 document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('bluemoon_token');
     localStorage.removeItem('bluemoon_role');

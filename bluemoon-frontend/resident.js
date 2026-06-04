@@ -264,6 +264,75 @@ if (bookingForm) {
 }
 
 // =========================================================================
+// HỆ THỐNG BONG BÓNG THÔNG BÁO (NOTIFICATIONS)
+// =========================================================================
+async function fetchAnnouncements() {
+    try {
+        const response = await fetch(`${API_BASE}/announcements`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (!response.ok) return;
+        
+        const announcements = await response.json();
+        const list = document.getElementById('announcementList');
+        if(!list) return;
+        
+        list.innerHTML = '';
+        
+        if (announcements.length === 0) {
+            list.innerHTML = '<p style="text-align:center; color: #7f8c8d;">Chưa có thông báo nào từ BQL.</p>';
+        } else {
+            announcements.forEach(ann => {
+                const date = new Date(ann.Created_At).toLocaleString('vi-VN');
+                list.innerHTML += `
+                    <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 5px 0; color: #2980b9;">${ann.Title}</h4>
+                        <p style="margin: 0 0 8px 0; font-size: 14px; color: #333;">${ann.Content}</p>
+                        <small style="color: #95a5a6;">🕒 ${date}</small>
+                    </div>
+                `;
+            });
+        }
+
+        // Logic Bong bóng đỏ
+        const viewedCount = parseInt(localStorage.getItem('bluemoon_noti_viewed')) || 0;
+        const badge = document.getElementById('notiBadge');
+        
+        if (announcements.length > viewedCount) {
+            const unread = announcements.length - viewedCount;
+            badge.textContent = unread;
+            badge.style.display = 'inline-block'; // Hiện bong bóng đỏ
+        } else {
+            badge.style.display = 'none'; // Ẩn bong bóng
+        }
+
+        // Lưu tổng số thông báo vào biến môi trường để dùng khi bấm click
+        window.totalAnnouncements = announcements.length;
+
+    } catch (error) { console.error('Lỗi tải thông báo:', error); }
+}
+
+// Bắt sự kiện khi Cư dân bấm vào Chuông
+const notiWrapper = document.getElementById('notificationWrapper');
+if (notiWrapper) {
+    notiWrapper.addEventListener('click', function() {
+        const panel = document.getElementById('notificationPanel');
+        
+        // Bật / tắt bảng thông báo
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            
+            // Xóa bong bóng đỏ và cập nhật bộ nhớ
+            document.getElementById('notiBadge').style.display = 'none';
+            localStorage.setItem('bluemoon_noti_viewed', window.totalAnnouncements);
+        } else {
+            panel.style.display = 'none';
+        }
+    });
+}
+
+// Gọi API tải thông báo ngay khi mở trang
+fetchAnnouncements();
+
+// =========================================================================
 // 6. XỬ LÝ ĐĂNG XUẤT 
 // =========================================================================
 document.getElementById('btnLogout').addEventListener('click', function() {

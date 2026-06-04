@@ -30,7 +30,28 @@ const createHousehold = async (req, res) => {
 };
 
 // API: Thêm nhân khẩu vào một hộ
+const addResident = async (req, res) => {
+    try {
+        const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
+        
+        const request = new sql.Request();
+        await request
+            .input('Household_ID', sql.Int, Household_ID)
+            .input('Full_Name', sql.NVarChar, Full_Name)
+            .input('Identity_Card', sql.VarChar, Identity_Card)
+            .input('Date_Of_Birth', sql.Date, Date_Of_Birth)
+            .input('Phone_Number', sql.VarChar, Phone_Number)
+            .input('Relation_With_Owner', sql.NVarChar, Relation_With_Owner)
+            .query(`
+                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner)
+                VALUES (@Household_ID, @Full_Name, @Identity_Card, @Date_Of_Birth, @Phone_Number, @Relation_With_Owner)
+            `);
 
+        res.status(201).json({ message: 'Thêm nhân khẩu thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 
 // API: Tạo hóa đơn hàng tháng cho hộ khẩu
 const createInvoice = async (req, res) => {
@@ -218,7 +239,6 @@ const payInvoice = async (req, res) => {
 };
 
 // API: Xem toàn bộ dịch vụ cư dân đang dùng
-// Thay thế hàm cũ bằng hàm này
 const getAllRegisteredServices = async (req, res) => {
     try {
         const request = new sql.Request();
@@ -228,87 +248,10 @@ const getAllRegisteredServices = async (req, res) => {
             FROM ServiceRegistrations sr
             JOIN Services s ON sr.Service_ID = s.Service_ID
             JOIN Households h ON sr.Household_ID = h.Household_ID
-            WHERE sr.Status = N'Đã duyệt' -- <=== THÊM DÒNG NÀY ĐỂ CHỈ LẤY DỊCH VỤ ĐÃ DUYỆT
+            WHERE sr.Status = N'Đã duyệt'
             ORDER BY h.Room_Number ASC, sr.Start_Date DESC
         `);
         res.status(200).json(result.recordset);
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi server', error: error.message });
-    }
-};
-
-// =========================================================================
-// TINH NANG 4: THONG BAO, TRUYEN THONG (DANH CHO BQL)
-// =========================================================================
-const createAnnouncement = async (req, res) => {
-    try {
-        const { Title, Content } = req.body;
-        const pool = await sql.connect();
-        
-        await pool.request()
-            .input('Title', sql.NVarChar, Title)
-            .input('Content', sql.NVarChar, Content)
-            .query('INSERT INTO Announcements (Title, Content) VALUES (@Title, @Content)');
-            
-        res.status(201).json({ message: 'Da phat hanh thong bao den toan the cu dan thanh cong!' });
-    } catch (error) {
-        res.status(500).json({ message: 'Loi may chu khi tao thong bao', error: error.message });
-    }
-};
-
-// =========================================================================
-// TINH NANG 3: TIEP NHAN PHAN ANH & KHIEU NAI (DANH CHO BQL)
-// =========================================================================
-const getAllFeedbacks = async (req, res) => {
-    try {
-        const pool = await sql.connect();
-        const result = await pool.request().query(`
-            SELECT f.Feedback_ID, f.Title, f.Content, f.Status, f.Created_At, h.Room_Number 
-            FROM Feedbacks f 
-            JOIN Households h ON f.Household_ID = h.Household_ID 
-            ORDER BY f.Created_At DESC
-        `);
-        res.status(200).json(result.recordset);
-    } catch (error) {
-        res.status(500).json({ message: 'Loi he thong khi lay danh sach phan anh', error: error.message });
-    }
-};
-
-const updateFeedbackStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { Status } = req.body; 
-        const pool = await sql.connect();
-
-        await pool.request()
-            .input('Status', sql.NVarChar, Status)
-            .input('Feedback_ID', sql.Int, id)
-            .query('UPDATE Feedbacks SET Status = @Status WHERE Feedback_ID = @Feedback_ID');
-            
-        res.status(200).json({ message: 'Da cap nhat tien do xu ly phan anh thanh cong!' });
-    } catch (error) {
-        res.status(500).json({ message: 'Loi khong the cap nhat trang thai phan anh', error: error.message });
-    }
-};
-// Thêm lại hàm addResident nếu lúc nãy lỡ xóa mất
-const addResident = async (req, res) => {
-    try {
-        const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
-        
-        const request = new sql.Request();
-        await request
-            .input('Household_ID', sql.Int, Household_ID)
-            .input('Full_Name', sql.NVarChar, Full_Name)
-            .input('Identity_Card', sql.VarChar, Identity_Card)
-            .input('Date_Of_Birth', sql.Date, Date_Of_Birth)
-            .input('Phone_Number', sql.VarChar, Phone_Number)
-            .input('Relation_With_Owner', sql.NVarChar, Relation_With_Owner)
-            .query(`
-                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner)
-                VALUES (@Household_ID, @Full_Name, @Identity_Card, @Date_Of_Birth, @Phone_Number, @Relation_With_Owner)
-            `);
-
-        res.status(201).json({ message: 'Thêm nhân khẩu thành công!' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
@@ -356,6 +299,61 @@ const updateServiceRequestStatus = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+
+// =========================================================================
+// TINH NANG 4: THONG BAO, TRUYEN THONG (DANH CHO BQL)
+// =========================================================================
+const createAnnouncement = async (req, res) => {
+    try {
+        const { Title, Content } = req.body;
+        const pool = await sql.connect();
+        
+        await pool.request()
+            .input('Title', sql.NVarChar, Title)
+            .input('Content', sql.NVarChar, Content)
+            .query('INSERT INTO Announcements (Title, Content) VALUES (@Title, @Content)');
+            
+        res.status(201).json({ message: 'Đã phát hành thông báo đến toàn thể cư dân thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi máy chủ khi tạo thông báo', error: error.message });
+    }
+};
+
+// =========================================================================
+// TINH NANG 3: TIEP NHAN PHAN ANH & KHIEU NAI (DANH CHO BQL)
+// =========================================================================
+const getAllFeedbacks = async (req, res) => {
+    try {
+        const pool = await sql.connect();
+        const result = await pool.request().query(`
+            SELECT f.Feedback_ID, f.Title, f.Content, f.Status, f.Created_At, h.Room_Number 
+            FROM Feedbacks f 
+            JOIN Households h ON f.Household_ID = h.Household_ID 
+            ORDER BY f.Created_At DESC
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi hệ thống khi lấy danh sách phản ánh', error: error.message });
+    }
+};
+
+const updateFeedbackStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        const pool = await sql.connect();
+
+        await pool.request()
+            .input('Status', sql.NVarChar, Status)
+            .input('Feedback_ID', sql.Int, id)
+            .query('UPDATE Feedbacks SET Status = @Status WHERE Feedback_ID = @Feedback_ID');
+            
+        res.status(200).json({ message: 'Đã cập nhật tiến độ xử lý phản ánh thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi không thể cập nhật trạng thái phản ánh', error: error.message });
+    }
+};
+
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 
@@ -369,9 +367,9 @@ module.exports = {
     getAllInvoices, 
     payInvoice, 
     getAllRegisteredServices,
+    getPendingServiceRequests,      
+    updateServiceRequestStatus,
     createAnnouncement,
     getAllFeedbacks,
-    updateFeedbackStatus,
-    getPendingServiceRequests,      // <-- Thêm dòng này
-    updateServiceRequestStatus      // <-- Thêm dòng này
+    updateFeedbackStatus
 };
