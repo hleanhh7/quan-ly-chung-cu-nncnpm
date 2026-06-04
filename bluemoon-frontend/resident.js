@@ -191,7 +191,7 @@ async function fetchMyServices() {
 // =========================================================================
 // 5. XỬ LÝ ĐẶT LỊCH TIỆN ÍCH (FACILITY BOOKING)
 // =========================================================================
-const API_BOOKING_URL = 'http://localhost:5000/api/services/facility-bookings';
+const API_BOOKING_URL = 'http://localhost:5000/api/resident/facility-bookings';
 
 // 5.1 Hàm load lịch sử đặt chỗ của hộ gia đình
 async function loadMyBookings() {

@@ -24,6 +24,10 @@ router.post('/service-register', residentController.registerService);
 // Đường dẫn: GET /api/resident/my-services
 router.get('/my-services', residentController.getMyRegisteredServices);
 
+// Đường dẫn cho Đặt lịch tiện ích
+router.post('/facility-bookings', residentController.bookFacility);
+router.get('/facility-bookings', residentController.getMyBookings);
+
 // ==========================================================
 // TÍNH NĂNG MỚI (Thông báo & Phản ánh)
 // ==========================================================

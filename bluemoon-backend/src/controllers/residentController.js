@@ -145,6 +145,46 @@ const addResident = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
+// =========================================================================
+// TÍNH NĂNG 5: ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
+// =========================================================================
+
+// API: Gửi yêu cầu đặt lịch
+const bookFacility = async (req, res) => {
+    try {
+        const householdId = req.user.householdId;
+        const { facility_name, booking_date, time_slot } = req.body;
+        const request = new sql.Request();
+
+        await request
+            .input('Household_ID', sql.Int, householdId)
+            .input('Facility_Name', sql.NVarChar, facility_name)
+            .input('Booking_Date', sql.Date, booking_date)
+            .input('Time_Slot', sql.NVarChar, time_slot)
+            .query(`
+                INSERT INTO FacilityBookings (Household_ID, Facility_Name, Booking_Date, Time_Slot) 
+                VALUES (@Household_ID, @Facility_Name, @Booking_Date, @Time_Slot)
+            `);
+
+        res.status(201).json({ message: 'Đặt lịch thành công! Vui lòng chờ BQL xác nhận.' });
+    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+};
+
+// API: Lấy lịch sử đặt chỗ của nhà mình
+const getMyBookings = async (req, res) => {
+    try {
+        const householdId = req.user.householdId;
+        const request = new sql.Request();
+        
+        const result = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query('SELECT * FROM FacilityBookings WHERE Household_ID = @Household_ID ORDER BY Booking_Date DESC');
+            
+        res.status(200).json(result.recordset);
+    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+};
+
+
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 
@@ -153,5 +193,7 @@ module.exports = {
     getMyRegisteredServices,
     getAnnouncements,
     sendFeedback,
-    addResident
+    addResident,
+    bookFacility,
+    getMyBookings
 };
