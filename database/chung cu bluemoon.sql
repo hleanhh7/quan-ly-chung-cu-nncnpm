@@ -192,3 +192,14 @@ GO
 ALTER TABLE ServiceRegistrations 
 ADD Created_At DATETIME DEFAULT GETDATE();
 GO
+
+CREATE TABLE ServiceRequests (
+    Request_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Household_ID INT NOT NULL,
+    Service_Type NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(MAX) NOT NULL,
+    Status NVARCHAR(50) DEFAULT N'Chờ duyệt', -- Chờ duyệt, Đã duyệt, Từ chối
+    Created_At DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (Household_ID) REFERENCES Households (Household_ID) ON DELETE CASCADE
+);
+GO
