@@ -55,5 +55,9 @@ router.post('/announcements', managerController.createAnnouncement);
 router.get('/feedbacks', managerController.getAllFeedbacks);
 router.put('/feedbacks/:id', managerController.updateFeedbackStatus);
 
+// Duong dan: GET & PUT cho Dat lich tien ich
+router.get('/facility-bookings', managerController.getPendingFacilityBookings);
+router.put('/facility-booking/:id', managerController.updateFacilityBookingStatus);
+
 // LUON LUON DE DONG NAY O CUOI CUNG CUA FILE
 module.exports = router;

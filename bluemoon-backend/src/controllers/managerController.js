@@ -353,6 +353,41 @@ const updateFeedbackStatus = async (req, res) => {
         res.status(500).json({ message: 'Lỗi không thể cập nhật trạng thái phản ánh', error: error.message });
     }
 };
+// =========================================================================
+// DUYỆT ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
+// =========================================================================
+const getPendingFacilityBookings = async (req, res) => {
+    try {
+        const pool = await sql.connect();
+        const result = await pool.request().query(`
+            SELECT fb.Booking_ID, h.Room_Number, fb.Facility_Name, fb.Booking_Date, fb.Time_Slot, fb.Status
+            FROM FacilityBookings fb
+            JOIN Households h ON fb.Household_ID = h.Household_ID
+            WHERE fb.Status = N'Chờ duyệt'
+            ORDER BY fb.Booking_Date ASC
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const updateFacilityBookingStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        const pool = await sql.connect();
+
+        await pool.request()
+            .input('Status', sql.NVarChar, Status)
+            .input('Booking_ID', sql.Int, id)
+            .query('UPDATE FacilityBookings SET Status = @Status WHERE Booking_ID = @Booking_ID');
+
+        res.status(200).json({ message: `Đã ${Status.toLowerCase()} đặt lịch tiện ích thành công!` });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
@@ -371,5 +406,7 @@ module.exports = {
     updateServiceRequestStatus,
     createAnnouncement,
     getAllFeedbacks,
-    updateFeedbackStatus
+    updateFeedbackStatus,
+    getPendingFacilityBookings,
+    updateFacilityBookingStatus
 };

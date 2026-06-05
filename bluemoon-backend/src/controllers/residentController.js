@@ -149,10 +149,17 @@ const addResident = async (req, res) => {
 // TÍNH NĂNG 5: ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
 // =========================================================================
 
-// API: Gửi yêu cầu đặt lịch
+// API: Gửi yêu cầu đặt lịch (Phiên bản nâng cấp chống lỗi)
 const bookFacility = async (req, res) => {
     try {
-        const householdId = req.user.householdId;
+        // Cố gắng lấy ID từ nhiều kiểu viết khác nhau của Token
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+
+        if (!householdId) {
+            console.log("❌ Lỗi Token: Không tìm thấy Household_ID", req.user);
+            return res.status(400).json({ message: 'Lỗi xác thực: Không nhận diện được Hộ khẩu của bạn.' });
+        }
+
         const { facility_name, booking_date, time_slot } = req.body;
         const request = new sql.Request();
 
@@ -166,10 +173,12 @@ const bookFacility = async (req, res) => {
                 VALUES (@Household_ID, @Facility_Name, @Booking_Date, @Time_Slot)
             `);
 
-        res.status(201).json({ message: 'Đặt lịch thành công! Vui lòng chờ BQL xác nhận.' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+        res.status(201).json({ message: '🎉 Đặt lịch thành công! Vui lòng chờ BQL xác nhận.' });
+    } catch (error) { 
+        console.error("❌ LỖI ĐẶT LỊCH TẠI BACKEND:", error); // In lỗi đỏ ra Terminal
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
-
 // API: Lấy lịch sử đặt chỗ của nhà mình
 const getMyBookings = async (req, res) => {
     try {

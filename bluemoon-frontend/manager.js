@@ -357,6 +357,140 @@ window.handleServiceRequest = async function(id, status) {
     } catch (error) { console.error('Lỗi API:', error); }
 };
 
+// =========================================================================
+// XỬ LÝ DUYỆT ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
+// =========================================================================
+async function loadFacilityBookings() {
+    try {
+        const response = await fetch(`${API_BASE}/facility-bookings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const tbody = document.getElementById('bangDuyetTienIch');
+        if (!tbody) return;
+
+        if (response.ok) {
+            const bookings = await response.json();
+            tbody.innerHTML = '';
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #7f8c8d;">Không có yêu cầu đặt lịch nào chờ duyệt.</td></tr>';
+                return;
+            }
+            
+            bookings.forEach(b => {
+                const dateOnly = new Date(b.Booking_Date).toLocaleDateString('vi-VN');
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">#${b.Booking_ID}</td>
+                        <td style="text-align:center;"><strong>${b.Room_Number}</strong></td>
+                        <td style="text-align:center;">${b.Facility_Name}</td>
+                        <td style="text-align:center; color: #2980b9; font-weight: bold;">${dateOnly}</td>
+                        <td style="text-align:center;">${b.Time_Slot}</td>
+                        <td style="color: #f39c12; font-weight: bold; text-align:center;">${b.Status}</td>
+                        <td style="text-align:center;">
+                            <button onclick="xuLyDatLich(${b.Booking_ID}, 'Đã duyệt')" style="background: #27ae60; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 5px;">Duyệt</button>
+                            <button onclick="xuLyDatLich(${b.Booking_ID}, 'Từ chối')" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Từ chối</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi load đặt lịch tiện ích:', error); }
+}
+
+async function xuLyDatLich(id, status) {
+    if (!confirm(`Bạn chắc chắn muốn ${status.toUpperCase()} yêu cầu đặt lịch này?`)) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/facility-booking/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ Status: status })
+        });
+        
+        if (response.ok) {
+            alert(`🎉 Đã ${status.toLowerCase()} thành công!`);
+            loadFacilityBookings(); // Tải lại bảng ngay lập tức
+        } else {
+            const err = await response.json();
+            alert('❌ Lỗi: ' + err.message);
+        }
+    } catch (error) { console.error('Lỗi duyệt đặt lịch:', error); }
+}
+
+// Bắt buộc gọi hàm này để nó tự động chạy khi mở trang
+loadFacilityBookings();
+
+// =========================================================================
+// VŨ KHÍ BÍ MẬT: VẼ BIỂU ĐỒ THỐNG KÊ TỰ ĐỘNG BẰNG CHART.JS
+// =========================================================================
+async function drawCharts() {
+    try {
+        // 1. VẼ BIỂU ĐỒ CỘT: DOANH THU (Lọc các hóa đơn "Đã thanh toán")
+        const resInvoices = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (resInvoices.ok) {
+            const invoices = await resInvoices.json();
+            
+            const revenueByMonth = {};
+            invoices.forEach(inv => {
+                if (inv.Payment_Status === 'Đã thanh toán') {
+                    const label = `Tháng ${inv.Billing_Month}/${inv.Billing_Year}`;
+                    revenueByMonth[label] = (revenueByMonth[label] || 0) + inv.Total_Amount;
+                }
+            });
+
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(revenueByMonth).length > 0 ? Object.keys(revenueByMonth) : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Doanh thu thực tế (VNĐ)',
+                        data: Object.keys(revenueByMonth).length > 0 ? Object.values(revenueByMonth) : [0],
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { title: { display: true, text: '💰 DOANH THU ĐÃ THU ĐƯỢC THEO THÁNG', font: { size: 16 } } } 
+                }
+            });
+        }
+
+        // 2. VẼ BIỂU ĐỒ TRÒN: TỶ LỆ DỊCH VỤ CƯ DÂN DÙNG NHIỀU NHẤT
+        const resServices = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (resServices.ok) {
+            const services = await resServices.json();
+            
+            const serviceCount = {};
+            services.forEach(svc => {
+                serviceCount[svc.Service_Name] = (serviceCount[svc.Service_Name] || 0) + svc.Quantity;
+            });
+
+            new Chart(document.getElementById('serviceChart'), {
+                type: 'pie', // Biểu đồ bánh tròn
+                data: {
+                    labels: Object.keys(serviceCount).length > 0 ? Object.keys(serviceCount) : ['Chưa có dịch vụ'],
+                    datasets: [{
+                        data: Object.keys(serviceCount).length > 0 ? Object.values(serviceCount) : [1],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#34495e', '#e67e22']
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { title: { display: true, text: '🚀 TỶ LỆ CÁC DỊCH VỤ ĐANG ĐƯỢC SỬ DỤNG', font: { size: 16 } } } 
+                }
+            });
+        }
+    } catch (error) { console.error('Lỗi vẽ biểu đồ:', error); }
+}
+
+// Chạy hàm vẽ biểu đồ ngay khi mở trang
+drawCharts();
+
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
 // ==================================================

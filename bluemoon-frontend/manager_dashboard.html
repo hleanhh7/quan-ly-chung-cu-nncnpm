@@ -69,6 +69,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -86,6 +87,21 @@
 
     <div id="tab-hoadon" class="tab-content active">
         <div class="container">
+            <div class="card full-width" style="border-bottom: 4px solid #3498db; background: #fdfdfd;">
+                <h3 style="text-align: center; color: #2c3e50;">📊 Bảng Điều Khiển Thống Kê Chung Cư</h3>
+                <div style="display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                    
+                    <div style="width: 100%; max-width: 450px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    
+                    <div style="width: 100%; max-width: 450px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <canvas id="serviceChart"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            
             <div class="card full-width">
                 <h3>Theo Dõi Hóa Đơn & Thu Tiền</h3>
                 <table>
@@ -224,6 +240,26 @@
                     </thead>
                     <tbody id="bangDuyetDichVu">
                         <tr><td colspan="7">Đang tải danh sách yêu cầu dịch vụ...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card full-width" style="border-top: 4px solid #27ae60; margin-top: 20px;">
+                <h3>Duyệt Đặt Lịch Tiện Ích Công Cộng (BBQ, Tennis, Gym)</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #27ae60; color: white;">
+                            <th>Mã Đơn</th>
+                            <th>Phòng</th>
+                            <th>Tiện Ích</th>
+                            <th>Ngày Sử Dụng</th>
+                            <th>Khung Giờ</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bangDuyetTienIch">
+                        <tr><td colspan="7">Đang tải danh sách đặt lịch...</td></tr>
                     </tbody>
                 </table>
             </div>
