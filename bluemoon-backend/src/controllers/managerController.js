@@ -33,24 +33,17 @@ const createHousehold = async (req, res) => {
 const addResident = async (req, res) => {
     try {
         const { Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner } = req.body;
+        
         const request = new sql.Request();
-
-        const checkHousehold = await request
-            .input('Household_ID', sql.Int, Household_ID)
-            .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
-
-        if (checkHousehold.recordset.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu này!' });
-        }
-
         await request
+            .input('Household_ID', sql.Int, Household_ID)
             .input('Full_Name', sql.NVarChar, Full_Name)
             .input('Identity_Card', sql.VarChar, Identity_Card)
             .input('Date_Of_Birth', sql.Date, Date_Of_Birth)
             .input('Phone_Number', sql.VarChar, Phone_Number)
             .input('Relation_With_Owner', sql.NVarChar, Relation_With_Owner)
             .query(`
-                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner) 
+                INSERT INTO Residents (Household_ID, Full_Name, Identity_Card, Date_Of_Birth, Phone_Number, Relation_With_Owner)
                 VALUES (@Household_ID, @Full_Name, @Identity_Card, @Date_Of_Birth, @Phone_Number, @Relation_With_Owner)
             `);
 
@@ -255,9 +248,53 @@ const getAllRegisteredServices = async (req, res) => {
             FROM ServiceRegistrations sr
             JOIN Services s ON sr.Service_ID = s.Service_ID
             JOIN Households h ON sr.Household_ID = h.Household_ID
+            WHERE sr.Status = N'Đã duyệt'
             ORDER BY h.Room_Number ASC, sr.Start_Date DESC
         `);
         res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// =========================================================================
+// TINH NANG: DUYET DANG KY DICH VU (TAB 3)
+// =========================================================================
+
+// API: Lấy danh sách đăng ký dịch vụ đang chờ duyệt
+const getPendingServiceRequests = async (req, res) => {
+    try {
+        const request = new sql.Request();
+        const result = await request.query(`
+            SELECT sr.Registration_ID as Request_ID, h.Room_Number, s.Service_Name, sr.Quantity, sr.Start_Date, sr.Status
+            FROM ServiceRegistrations sr
+            JOIN Households h ON sr.Household_ID = h.Household_ID
+            JOIN Services s ON sr.Service_ID = s.Service_ID
+            WHERE sr.Status = N'Chờ duyệt'
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Cập nhật trạng thái đăng ký dịch vụ (Duyệt / Từ chối)
+const updateServiceRequestStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        const request = new sql.Request();
+
+        await request
+            .input('Status', sql.NVarChar, Status)
+            .input('Registration_ID', sql.Int, id)
+            .query(`
+                UPDATE ServiceRegistrations 
+                SET Status = @Status 
+                WHERE Registration_ID = @Registration_ID
+            `);
+
+        res.status(200).json({ message: `Đã ${Status.toLowerCase()} yêu cầu đăng ký dịch vụ!` });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
@@ -276,9 +313,9 @@ const createAnnouncement = async (req, res) => {
             .input('Content', sql.NVarChar, Content)
             .query('INSERT INTO Announcements (Title, Content) VALUES (@Title, @Content)');
             
-        res.status(201).json({ message: 'Da phat hanh thong bao den toan the cu dan thanh cong!' });
+        res.status(201).json({ message: 'Đã phát hành thông báo đến toàn thể cư dân thành công!' });
     } catch (error) {
-        res.status(500).json({ message: 'Loi may chu khi tao thong bao', error: error.message });
+        res.status(500).json({ message: 'Lỗi máy chủ khi tạo thông báo', error: error.message });
     }
 };
 
@@ -296,7 +333,7 @@ const getAllFeedbacks = async (req, res) => {
         `);
         res.status(200).json(result.recordset);
     } catch (error) {
-        res.status(500).json({ message: 'Loi he thong khi lay danh sach phan anh', error: error.message });
+        res.status(500).json({ message: 'Lỗi hệ thống khi lấy danh sách phản ánh', error: error.message });
     }
 };
 
@@ -311,9 +348,9 @@ const updateFeedbackStatus = async (req, res) => {
             .input('Feedback_ID', sql.Int, id)
             .query('UPDATE Feedbacks SET Status = @Status WHERE Feedback_ID = @Feedback_ID');
             
-        res.status(200).json({ message: 'Da cap nhat tien do xu ly phan anh thanh cong!' });
+        res.status(200).json({ message: 'Đã cập nhật tiến độ xử lý phản ánh thành công!' });
     } catch (error) {
-        res.status(500).json({ message: 'Loi khong the cap nhat trang thai phan anh', error: error.message });
+        res.status(500).json({ message: 'Lỗi không thể cập nhật trạng thái phản ánh', error: error.message });
     }
 };
 
@@ -330,6 +367,8 @@ module.exports = {
     getAllInvoices, 
     payInvoice, 
     getAllRegisteredServices,
+    getPendingServiceRequests,      
+    updateServiceRequestStatus,
     createAnnouncement,
     getAllFeedbacks,
     updateFeedbackStatus

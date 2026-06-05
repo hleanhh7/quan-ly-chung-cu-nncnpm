@@ -24,11 +24,19 @@ router.post('/service-register', residentController.registerService);
 // Đường dẫn: GET /api/resident/my-services
 router.get('/my-services', residentController.getMyRegisteredServices);
 
+// Đường dẫn cho Đặt lịch tiện ích
+router.post('/facility-bookings', residentController.bookFacility);
+router.get('/facility-bookings', residentController.getMyBookings);
+
 // ==========================================================
 // TÍNH NĂNG MỚI (Thông báo & Phản ánh)
 // ==========================================================
 router.get('/announcements', residentController.getAnnouncements);
 router.post('/feedbacks', residentController.sendFeedback);
+// Thêm vào residentRoutes.js
+
+// Thêm dòng này vào residentRoutes.js
+router.post('/add-resident', residentController.addResident);
 
 // LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

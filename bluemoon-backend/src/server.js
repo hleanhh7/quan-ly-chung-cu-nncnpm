@@ -34,7 +34,7 @@ const startServer = async () => {
 
     // 2. Mở cổng chạy Server Backend
     app.listen(PORT, () => {
-        console.log(`💻 Server đang chạy tại đường dẫn: http://localhost:${PORT}`);
+        console.log(`💻 Server BẢN MỚI NHẤT đang chạy tại: http://localhost:${PORT}`);
     });
 };
 

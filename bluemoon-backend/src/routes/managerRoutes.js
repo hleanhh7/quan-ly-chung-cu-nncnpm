@@ -42,6 +42,12 @@ router.put('/invoice/:id/pay', managerController.payInvoice);
 // Duong dan: GET /api/manager/registered-services
 router.get('/registered-services', managerController.getAllRegisteredServices);
 
+// Duong dan: GET /api/manager/service-requests (Lay danh sach dich vu cho duyet)
+router.get('/service-requests', managerController.getPendingServiceRequests);
+
+// Duong dan: PUT /api/manager/service-request/:id (Duyet hoac tu choi)
+router.put('/service-request/:id', managerController.updateServiceRequestStatus);
+
 // ==========================================================
 // TINH NANG MOI (Thong bao & Phan anh)
 // ==========================================================

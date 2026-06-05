@@ -11,8 +11,9 @@
         .btn-logout { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
         .btn-logout:hover { background: #c0392b; }
         
-        .container { display: flex; flex-wrap: wrap; gap: 20px; }
+        .container { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 15px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
+        .card.full-width { flex: 1 1 100%; }
         .card h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
         
         .form-group { margin-bottom: 15px; }
@@ -20,6 +21,53 @@
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         .btn-submit { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
         .btn-submit:hover { background: #2980b9; }
+        
+        /* ===== TAB NAVIGATION ===== */
+        .tab-nav {
+            display: flex;
+            background: #fff;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px 10px;
+            background: #ecf0f1;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            transition: 0.3s;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin-right: 2px;
+            min-width: 150px;
+        }
+        
+        .tab-btn:last-child { margin-right: 0; }
+        .tab-btn:hover { background: #d5dbdb; }
+        .tab-btn.active { background: #3498db; color: white; }
+        
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 0 8px 8px 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .tab-content.active { display: block; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
     </style>
 </head>
 <body>
@@ -28,226 +76,230 @@
         <h2>Trang Nghiệp Vụ - Ban Quản Lý Bluemoon</h2>
         <button class="btn-logout" id="btnLogout">Đăng xuất</button>
     </div>
-
-
-    <div class="card" style="flex: 1 1 100%;">
-            <h3>Theo Dõi Hóa Đơn & Thu Tiền</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #27ae60; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Kỳ thu (Tháng/Năm)</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Tổng tiền</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Trạng thái</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="allInvoicesTableBody">
-                    <tr><td colspan="5">Đang tải danh sách hóa đơn...</td></tr>
-                </tbody>
-            </table>
-    </div>
-
-    <div class="card" style="flex: 1 1 100%;">
-            <h3>Thống kê Dịch vụ đang sử dụng</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #34495e; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Dịch vụ</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Số lượng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Ngày bắt đầu</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Tạm tính (VNĐ/Tháng)</th>
-                    </tr>
-                </thead>
-                <tbody id="allServicesTableBody">
-                    <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-    <div class="card" style="flex: 1 1 100%;">
-            <h3>Danh Sách Hộ Khẩu Hiện Tại</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #8e44ad; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">ID Hộ Khẩu</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Số Phòng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Tên Chủ Hộ</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Ngày Chuyển Vào</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Trạng Thái</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Hành động</th> </tr>
-                    </tr>
-                </thead>
-                <tbody id="householdTableBody">
-                    <tr><td colspan="5">Đang tải danh sách hộ khẩu...</td></tr>
-                </tbody>
-            </table>
-    </div>
-
-    <div class="container">
-        <div class="card">
-            <h3>Thêm Hộ Khẩu Mới</h3>
-            <form id="formHousehold">
-                <div class="form-group">
-                    <label>Số phòng (VD: B202)</label>
-                    <input type="text" id="roomNumber" required>
-                </div>
-                <div class="form-group">
-                    <label>Tên chủ hộ</label>
-                    <input type="text" id="ownerName" required>
-                </div>
-                <div class="form-group">
-                    <label>Ngày chuyển vào</label>
-                    <input type="date" id="moveInDate" required>
-                </div>
-                <button type="submit" class="btn-submit">Tạo Hộ Khẩu</button>
-            </form>
-        </div>
-
-
-    <div class="card" style="flex: 1 1 100%;">
-            <h3>Duyệt Đơn Tạm Trú / Tạm Vắng</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #e67e22; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Người khai báo</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Loại</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Thời gian</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Lý do</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="declarationTableBody">
-                    <tr><td colspan="6">Đang tải dữ liệu...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card">
-            <h3>Thêm Nhân Khẩu</h3>
-            <form id="formResident">
-                <div class="form-group">
-                    <label>ID Hộ Khẩu</label>
-                    <input type="number" id="resHouseholdId" required>
-                </div>
-                <div class="form-group">
-                    <label>Họ và Tên</label>
-                    <input type="text" id="resFullName" required>
-                </div>
-                <div class="form-group">
-                    <label>CCCD / Hộ chiếu</label>
-                    <input type="text" id="resIdentity">
-                </div>
-                <div class="form-group">
-                    <label>Ngày sinh</label>
-                    <input type="date" id="resDob" required>
-                </div>
-                <div class="form-group">
-                    <label>Quan hệ với chủ hộ</label>
-                    <select id="resRelation" required>
-                        <option value="Chủ hộ">Chủ hộ</option>
-                        <option value="Vợ">Vợ</option>
-                        <option value="Chồng">Chồng</option>
-                        <option value="Con">Con</option>
-                        <option value="Khác">Khác</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-submit">Thêm Nhân Khẩu</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3>Cấp Tài Khoản Cư Dân</h3>
-            <form id="formAccount">
-                <div class="form-group">
-                    <label>ID Hộ Khẩu</label>
-                    <input type="number" id="accHouseholdId" required>
-                </div>
-                <div class="form-group">
-                    <label>Tên đăng nhập mới</label>
-                    <input type="text" id="accUsername" required>
-                </div>
-                <div class="form-group">
-                    <label>Mật khẩu khởi tạo</label>
-                    <input type="password" id="accPassword" required>
-                </div>
-                <button type="submit" class="btn-submit">Tạo Tài Khoản</button>
-            </form>
-        </div>
-
-
-
-        <div class="card">
-            <h3>Phát Hành Hóa Đơn</h3>
-            <form id="formInvoice">
-                <div class="form-group">
-                    <label>ID Hộ Khẩu</label>
-                    <input type="number" id="invHouseholdId" required>
-                </div>
-                <div class="form-group">
-                    <label>Tháng</label>
-                    <input type="number" id="invMonth" min="1" max="12" required>
-                </div>
-                <div class="form-group">
-                    <label>Năm</label>
-                    <input type="number" id="invYear" required>
-                </div>
-                <div class="form-group">
-                    <label>Tổng tiền (VNĐ)</label>
-                    <input type="number" id="invTotal" required>
-                </div>
-                <button type="submit" class="btn-submit">Tạo Hóa Đơn</button>
-            </form>
-        </div>
-
-
-        <div class="card" style="margin-top: 20px;">
-            <h3>📢 Phát hành Thông báo & Truyền thông</h3>
-            <form id="announcementForm">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">Tiêu đề thông báo</label>
-                    <input type="text" id="annTitle"
-                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
-                        placeholder="Ví dụ: Lịch cắt điện luân phiên..." required>
-                </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">Nội dung chi tiết</label>
-                    <textarea id="annContent" rows="4"
-                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
-                        placeholder="Nhập nội dung cần truyền thông..." required></textarea>
-                </div>
-                <button type="submit"
-                    style="background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Đăng
-                    Thông Báo</button>
-            </form>
-        </div>
-
-        <div class="card" style="margin-top: 20px;">
-            <h3>🛠 Tiếp nhận Phản ánh & Khiếu nại từ Cư dân</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                <thead>
-                    <tr style="background-color: #2c3e50; color: white;">
-                        <th style="padding: 12px; border: 1px solid #ddd;">Phòng</th>
-                        <th style="padding: 12px; border: 1px solid #ddd; width: 40%;">Nội dung phản ánh</th>
-                        <th style="padding: 12px; border: 1px solid #ddd;">Ngày gửi</th>
-                        <th style="padding: 12px; border: 1px solid #ddd;">Trạng thái</th>
-                        <th style="padding: 12px; border: 1px solid #ddd;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody id="feedbackTableBody">
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 15px;">Đang tải danh sách...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-
     
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-hoadon')">📊 Hóa Đơn & Tài Chính</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-hokhau')">🏠 Quản Lý Hộ Khẩu</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-dichvu')">🚀 Dịch Vụ & Tiện Ích</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-taikhoan')">👤 Tài Khoản Cư Dân</button>
+    </div>
 
+    <div id="tab-hoadon" class="tab-content active">
+        <div class="container">
+            <div class="card full-width">
+                <h3>Theo Dõi Hóa Đơn & Thu Tiền</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #27ae60; color: white;">
+                            <th>Phòng</th>
+                            <th>Kỳ thu (Tháng/Năm)</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allInvoicesTableBody">
+                        <tr><td colspan="5">Đang tải danh sách hóa đơn...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>Phát Hành Hóa Đơn</h3>
+                <form id="formInvoice">
+                    <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="invHouseholdId" required></div>
+                    <div class="form-group"><label>Tháng</label><input type="number" id="invMonth" min="1" max="12" required></div>
+                    <div class="form-group"><label>Năm</label><input type="number" id="invYear" required></div>
+                    <div class="form-group"><label>Tổng tiền (VNĐ)</label><input type="number" id="invTotal" required></div>
+                    <button type="submit" class="btn-submit">Tạo Hóa Đơn</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-hokhau" class="tab-content">
+        <div class="container">
+            <div class="card full-width">
+                <h3>Danh Sách Hộ Khẩu Hiện Tại</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #8e44ad; color: white;">
+                            <th>ID Hộ Khẩu</th>
+                            <th>Số Phòng</th>
+                            <th>Tên Chủ Hộ</th>
+                            <th>Ngày Chuyển Vào</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="householdTableBody">
+                        <tr><td colspan="6">Đang tải danh sách hộ khẩu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card full-width">
+                <h3>Lịch Sử Hộ Đã Chuyển Đi</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #e74c3c; color: white;">
+                            <th>Số Phòng</th>
+                            <th>Tên Chủ Hộ</th>
+                            <th>Ngày Chuyển Vào</th>
+                            <th>Ngày Chuyển Đi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moveOutHistoryBody">
+                        <tr><td colspan="4">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>Thêm Hộ Khẩu Mới</h3>
+                <form id="formHousehold">
+                    <div class="form-group"><label>Số phòng (VD: B202)</label><input type="text" id="roomNumber" required></div>
+                    <div class="form-group"><label>Tên chủ hộ</label><input type="text" id="ownerName" required></div>
+                    <div class="form-group"><label>Ngày chuyển vào</label><input type="date" id="moveInDate" required></div>
+                    <button type="submit" class="btn-submit">Tạo Hộ Khẩu</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Thêm Nhân Khẩu</h3>
+                <form id="formResident">
+                    <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="resHouseholdId" required></div>
+                    <div class="form-group"><label>Họ tên</label><input type="text" id="resFullName" required></div>
+                    <div class="form-group"><label>CCCD</label><input type="text" id="resIdentity" required></div>
+                    <div class="form-group"><label>Ngày sinh</label><input type="date" id="resDob" required></div>
+                    <div class="form-group"><label>Quan hệ chủ hộ</label><input type="text" id="resRelation" required></div>
+                    <button type="submit" class="btn-submit">Thêm Nhân Khẩu</button>
+                </form>
+            </div>
+
+            <div class="card full-width">
+                <h3>Đơn tạm trú tạm vắng chờ duyệt</h3>
+                <table>
+                    <tbody id="declarationTableBody">
+                        <tr><td colspan="1" style="text-align: center;">Chưa có đơn mới...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-dichvu" class="tab-content">
+        <div class="container">
+            <div class="card full-width">
+                <h3>Thống kê Dịch vụ đang sử dụng</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #34495e; color: white;">
+                            <th>Phòng</th>
+                            <th>Dịch vụ</th>
+                            <th>Số lượng</th>
+                            <th>Ngày bắt đầu</th>
+                            <th>Tạm tính (VNĐ/Tháng)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allServicesTableBody">
+                        <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card full-width">
+                <h3>Duyệt Đăng Ký Dịch Vụ Chung Cư</h3>
+                <table>
+                    <thead>
+                        <tr style="background-color: #2980b9; color: white;">
+                            <th>Mã YC</th>
+                            <th>Ngày Gửi</th>
+                            <th>Phòng</th>
+                            <th>Loại Dịch Vụ</th>
+                            <th>Chi Tiết Yêu Cầu</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bangDuyetDichVu">
+                        <tr><td colspan="7">Đang tải danh sách yêu cầu dịch vụ...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-taikhoan" class="tab-content">
+        <div class="container">
+            <div class="card">
+                <h3>Cấp Tài Khoản Cư Dân</h3>
+                <form id="formAccount">
+                    <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="accHouseholdId" required></div>
+                    <div class="form-group"><label>Tên đăng nhập mới</label><input type="text" id="accUsername" required></div>
+                    <div class="form-group"><label>Mật khẩu khởi tạo</label><input type="password" id="accPassword" required></div>
+                    <button type="submit" class="btn-submit">Tạo Tài Khoản</button>
+                </form>
+            </div>
+            <div class="card" style="border-top: 4px solid #f39c12; margin-top: 20px;">
+    <h3>📢 Phát Thông Báo Cho Cư Dân</h3>
+    <form id="formAnnouncement">
+        <div class="form-group">
+            <label>Tiêu đề thông báo:</label>
+            <input type="text" id="annTitle" placeholder="VD: Lịch cúp điện ngày mai..." required>
+        </div>
+        <div class="form-group">
+            <label>Nội dung chi tiết:</label>
+            <textarea id="annContent" rows="4" required placeholder="Nhập nội dung cần thông báo..."></textarea>
+        </div>
+        <button type="submit" class="btn-submit" style="background: #f39c12;">Phát Loa Thông Báo</button>
+    </form>
+</div>
+        </div>
+    </div>
+
+    <script>
+        // Xử lý chuyển Tab mượt mà
+        function openTab(evt, tabName) {
+            // Ẩn nội dung của tất cả các tab
+            var contents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+            
+            // Xóa trạng thái active của tất cả các nút
+            var buttons = document.getElementsByClassName("tab-btn");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove("active");
+            }
+            
+            // Hiển thị tab được chọn và đánh dấu active cho nút vừa click
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Xử lý duyệt/từ chối dịch vụ
+        function xuLyYeuCau(maYC, hanhDong) {
+            let row = document.getElementById(maYC);
+            if (!row) return; // Bỏ qua nếu không tìm thấy ID
+            
+            let trangThaiCell = row.querySelector('.trang-thai');
+            let hanhDongCell = row.querySelector('.hanh-dong');
+
+            if (hanhDong === 'duyet') {
+                if(confirm('Xác nhận DUYỆT yêu cầu ' + maYC + ' ?')) {
+                    trangThaiCell.innerHTML = '<span style="color: #27ae60; font-weight: bold;">Đã duyệt</span>';
+                    hanhDongCell.innerHTML = '<i style="color: #7f8c8d; font-size: 14px;">Đã xử lý</i>';
+                }
+            } else if (hanhDong === 'tuchoi') {
+                let lyDo = prompt('Nhập lý do từ chối cho yêu cầu ' + maYC + ':');
+                if(lyDo != null && lyDo.trim() !== '') {
+                    trangThaiCell.innerHTML = '<span style="color: #c0392b; font-weight: bold;">Từ chối</span>';
+                    hanhDongCell.innerHTML = '<i style="color: #c0392b; font-size: 14px;">Lý do: ' + lyDo + '</i>';
+                }
+            }
+        }
+    </script>
     <script src="manager.js"></script>
 </body>
 </html>

@@ -1,29 +1,31 @@
-// 1. KIỂM TRA BẢO MẬT (Chỉ Quản lý mới được vào)
+// =========================================================================
+// 1. KIỂM TRA BẢO MẬT & KHỞI TẠO ĐỊA CHỈ API
+// =========================================================================
 const token = localStorage.getItem('bluemoon_token');
 const role = localStorage.getItem('bluemoon_role');
+const API_BASE = 'http://localhost:5000/api/manager';
 
 if (!token || role !== 'Manager') {
     alert('Truy cập bị từ chối. Chỉ dành cho Ban Quản Lý!');
     window.location.href = 'index.html';
 }
 
-// HÀM TIỆN ÍCH: Dùng để gọi API chung cho các form
-async function callManagerApi(url, data, formId) {
+// HÀM TIỆN ÍCH: Dùng để gọi API POST chung cho các form
+async function callManagerApi(url, data, formId, callback) {
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // Quẹt thẻ
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(data)
         });
-
         const result = await response.json();
-
         if (response.ok) {
             alert('Thành công: ' + result.message);
-            document.getElementById(formId).reset(); // Xóa trắng form sau khi thành công
+            document.getElementById(formId).reset();
+            if (callback) callback(); // Tải lại bảng nếu có truyền hàm callback
         } else {
             alert('Lỗi: ' + result.message);
         }
@@ -33,39 +35,19 @@ async function callManagerApi(url, data, formId) {
     }
 }
 
-// 2. XỬ LÝ FORM THÊM HỘ KHẨU (Có tự động tải lại bảng)
-document.getElementById('formHousehold').addEventListener('submit', async function(e) {
+// ==================================================
+// 2. XỬ LÝ CÁC FORM GỬI DỮ LIỆU (TẠO MỚI)
+// ==================================================
+document.getElementById('formHousehold').addEventListener('submit', function(e) {
     e.preventDefault();
     const data = {
         Room_Number: document.getElementById('roomNumber').value,
         Owner_Name: document.getElementById('ownerName').value,
         Move_In_Date: document.getElementById('moveInDate').value
     };
-
-    try {
-        const response = await fetch('http://localhost:5000/api/manager/household', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            alert('Thành công: ' + result.message);
-            document.getElementById('formHousehold').reset();
-            fetchHouseholds(); // <-- GỌI LẠI HÀM NÀY ĐỂ BẢNG TỰ CẬP NHẬT HỘ MỚI!
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error(error);
-    }
+    callManagerApi(`${API_BASE}/household`, data, 'formHousehold', fetchHouseholds);
 });
 
-// 3. XỬ LÝ FORM THÊM NHÂN KHẨU
 document.getElementById('formResident').addEventListener('submit', function(e) {
     e.preventDefault();
     const data = {
@@ -75,10 +57,9 @@ document.getElementById('formResident').addEventListener('submit', function(e) {
         Date_Of_Birth: document.getElementById('resDob').value,
         Relation_With_Owner: document.getElementById('resRelation').value
     };
-    callManagerApi('http://localhost:5000/api/manager/resident', data, 'formResident');
+    callManagerApi(`${API_BASE}/resident`, data, 'formResident');
 });
 
-// 4. XỬ LÝ FORM TẠO HÓA ĐƠN
 document.getElementById('formInvoice').addEventListener('submit', function(e) {
     e.preventDefault();
     const data = {
@@ -87,12 +68,9 @@ document.getElementById('formInvoice').addEventListener('submit', function(e) {
         Billing_Year: document.getElementById('invYear').value,
         Total_Amount: document.getElementById('invTotal').value
     };
-    fetchAllInvoices(); // Cập nhật lại bảng hóa đơn ngay sau khi tạo mới
-    callManagerApi('http://localhost:5000/api/manager/invoice', data, 'formInvoice');
+    callManagerApi(`${API_BASE}/invoice`, data, 'formInvoice', fetchAllInvoices);
 });
 
-
-// 6. XỬ LÝ FORM TẠO TÀI KHOẢN CHO CƯ DÂN 
 document.getElementById('formAccount').addEventListener('submit', function(e) {
     e.preventDefault();
     const data = {
@@ -100,405 +78,290 @@ document.getElementById('formAccount').addEventListener('submit', function(e) {
         Username: document.getElementById('accUsername').value,
         Password: document.getElementById('accPassword').value
     };
-    callManagerApi('http://localhost:5000/api/manager/account', data, 'formAccount');
+    callManagerApi(`${API_BASE}/account`, data, 'formAccount');
 });
 
-// 5. ĐĂNG XUẤT
+// Phát Thông Báo
+document.getElementById('formAnnouncement').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        Title: document.getElementById('annTitle').value,
+        Content: document.getElementById('annContent').value
+    };
+    callManagerApi(`${API_BASE}/announcements`, data, 'formAnnouncement');
+});
+
 document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('bluemoon_token');
     localStorage.removeItem('bluemoon_role');
     window.location.href = 'index.html';
 });
 
-// HÀM TẢI DANH SÁCH HỘ KHẨU
-async function fetchHouseholds() {
-    try {
-        const response = await fetch('http://localhost:5000/api/manager/households', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}` // Quẹt thẻ bảo vệ
-            }
-        });
 
-        const households = await response.json();
-        const tbody = document.getElementById('householdTableBody');
-        tbody.innerHTML = ''; // Xóa dòng chữ "Đang tải..."
+// ==================================================
+// 3. RENDER BẢNG VÀ CHỨC NĂNG CẬP NHẬT (GIAO DIỆN)
+// ==================================================
 
-        if (response.ok) {
-            if (households.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">Chưa có hộ khẩu nào trong hệ thống.</td></tr>';
-            } else {
-                households.forEach(hh => {
-                    // Chuyển định dạng ngày từ DB thành ngày/tháng/năm dễ nhìn
-                    const moveInDate = new Date(hh.Move_In_Date).toLocaleDateString('vi-VN');
-                    
-                    // (Bên trong hàm fetchHouseholds, thay thế đoạn tạo const row cũ bằng đoạn này)
-                    
-                    // Nếu trạng thái là 'Đã chuyển đi', ta ẩn nút đi hoặc làm mờ nó
-                    const actionButton = hh.Status === 'Đang ở' 
-                        ? `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`
-                        : `<span style="color: #7f8c8d; font-style: italic;">Đã rời đi</span>`;
-
-                    const row = `
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: ${hh.Status === 'Đang ở' ? '#2ecc71' : '#e74c3c'};">${hh.Status}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            }
-        } else {
-            alert('Lỗi khi tải danh sách: ' + households.message);
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
-}
-
-// Gọi hàm này ngay khi trang load xong
-fetchHouseholds();
-
-
-// HÀM: Tải danh sách đơn đang chờ duyệt
-async function fetchDeclarations() {
-    try {
-        const response = await fetch('http://localhost:5000/api/manager/declarations', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const declarations = await response.json();
-        const tbody = document.getElementById('declarationTableBody');
-        tbody.innerHTML = '';
-
-        if (response.ok) {
-            if (declarations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Không có đơn nào đang chờ duyệt.</td></tr>';
-            } else {
-                declarations.forEach(dec => {
-                    const startDate = new Date(dec.Start_Date).toLocaleDateString('vi-VN');
-                    const endDate = new Date(dec.End_Date).toLocaleDateString('vi-VN');
-                    const loai = dec.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
-
-                    const row = `
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${dec.Room_Number}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${dec.Full_Name}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${loai}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate} - ${endDate}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${dec.Reason}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Đã duyệt')" style="background-color: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Duyệt</button>
-                                <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Từ chối')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
-}
-
-// Gọi hàm ngay khi load trang
-fetchDeclarations();
-
-
-
-// HÀM: Tải danh sách toàn bộ hóa đơn
+// --- QUẢN LÝ HÓA ĐƠN ---
 async function fetchAllInvoices() {
     try {
-        const response = await fetch('http://localhost:5000/api/manager/invoices', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
+        const response = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` } });
         const invoices = await response.json();
-        const tbody = document.getElementById('allInvoicesTableBody');
-        tbody.innerHTML = '';
-
-        if (response.ok) {
-            if (invoices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hóa đơn nào được tạo.</td></tr>';
-            } else {
-                invoices.forEach(inv => {
-                    // Nếu chưa thanh toán thì hiện nút "Thu tiền", nếu đã thanh toán thì ẩn nút
-                    const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
-                        ? `<button onclick="markInvoiceAsPaid(${inv.Invoice_ID})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
-                        : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
-
-                    const statusColor = inv.Payment_Status === 'Chưa thanh toán' ? '#e74c3c' : '#27ae60';
-
-                    const row = `
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${inv.Room_Number}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${inv.Total_Amount.toLocaleString('vi-VN')} đ</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: ${statusColor}; font-weight: bold;">${inv.Payment_Status}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Lỗi tải hóa đơn:', error);
-    }
-}
-
-// Gọi hàm khi load trang
-fetchAllInvoices();
-
-// HÀM: Xác nhận thu tiền hóa đơn
-window.markInvoiceAsPaid = async function(id) {
-    if (!confirm('Xác nhận hộ dân này đã đóng tiền?')) return;
-
-    try {
-        const response = await fetch(`http://localhost:5000/api/manager/invoice/${id}/pay`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            alert(result.message);
-            fetchAllInvoices(); // Cập nhật lại bảng hóa đơn
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
-};
-
-// HÀM: Gửi yêu cầu Duyệt hoặc Từ chối lên Server
-// Lưu ý: Hàm này phải để ở global (biến toàn cục) để nút onclick trong HTML gọi được
-window.updateDeclaration = async function(id, status) {
-    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} đơn này?`)) return;
-
-    try {
-        const response = await fetch(`http://localhost:5000/api/manager/declaration/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ Status: status })
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            alert(result.message);
-            fetchDeclarations(); // Tải lại bảng ngay lập tức để đơn đó biến mất khỏi danh sách chờ
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error(error);
-    }
-};
-
-// HÀM: Đổi trạng thái hộ khẩu thành Đã chuyển đi
-window.markAsMovedOut = async function(id) {
-    if (!confirm('Bạn có chắc chắn muốn báo hộ này đã chuyển đi? Tài khoản Web của họ sẽ bị thu hồi.')) return;
-
-    try {
-        const response = await fetch(`http://localhost:5000/api/manager/household/${id}/status`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            alert(result.message);
-            fetchHouseholds(); // Cập nhật lại bảng
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối:', error);
-    }
-};
-
-// HÀM: Tải toàn bộ dịch vụ cư dân đang dùng
-async function fetchAllRegisteredServices() {
-    try {
-        const response = await fetch('http://localhost:5000/api/manager/registered-services', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const services = await response.json();
-        const tbody = document.getElementById('allServicesTableBody');
-        tbody.innerHTML = '';
-
-        if (response.ok) {
-            if (services.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hộ nào đăng ký dịch vụ.</td></tr>';
-            } else {
-                services.forEach(svc => {
-                    const startDate = new Date(svc.Start_Date).toLocaleDateString('vi-VN');
-                    const row = `
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${svc.Room_Number}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${svc.Service_Name}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${svc.Quantity}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: right; color: #e67e22; font-weight: bold;">
-                                ${svc.Estimated_Cost.toLocaleString('vi-VN')} đ
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Lỗi tải danh sách dịch vụ:', error);
-    }
-}
-
-fetchAllRegisteredServices(); // Gọi hàm khi load trang
-
-
-// Cấu hình đường dẫn API (Đảm bảo cổng 5000 hoặc cổng máy chủ Backend đang chạy)
-const MANAGER_API_URL = 'http://localhost:5000/api/manager';
-
-// =========================================================================
-// GỌI API: TẠO THÔNG BÁO MỚI
-// =========================================================================
-document.getElementById('announcementForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    // Lấy dữ liệu và định dạng đúng Key viết hoa như Backend yêu cầu
-    const payload = {
-        Title: document.getElementById('annTitle').value,
-        Content: document.getElementById('annContent').value
-    };
-
-    try {
-        const response = await fetch(`${MANAGER_API_URL}/announcements`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
         
-        if (response.ok) {
-            alert(result.message); // Hiển thị câu "Da phat hanh thong bao..." từ Backend
-            document.getElementById('announcementForm').reset();
-        } else {
-            alert('Lỗi: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Lỗi khi đăng thông báo:', error);
-        alert('Lỗi kết nối đến máy chủ!');
-    }
-});
-
-// =========================================================================
-// GỌI API: LẤY DANH SÁCH VÀ HIỂN THỊ PHẢN ÁNH
-// =========================================================================
-async function fetchAllFeedbacks() {
-    try {
-        const response = await fetch(`${MANAGER_API_URL}/feedbacks`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const feedbacks = await response.json();
-        const tbody = document.getElementById('feedbackTableBody');
+        const tbody = document.getElementById('allInvoicesTableBody');
+        if(!tbody) return;
         tbody.innerHTML = '';
 
-        if (response.ok) {
-            if (feedbacks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;">Chưa có phản ánh nào từ cư dân.</td></tr>';
-                return;
-            }
+        if (invoices.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hóa đơn nào được tạo.</td></tr>';
+        } else {
+            invoices.forEach(inv => {
+                const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
+                    ? `<button onclick="xacNhanThuTien(${inv.Invoice_ID})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
+                    : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
 
-            feedbacks.forEach(fb => {
-                // Hiển thị ngày giờ
-                const date = new Date(fb.Created_At).toLocaleString('vi-VN');
-                
-                // Cài đặt màu sắc và nút bấm dựa theo trạng thái
-                let statusBadge = '';
-                let actionButton = '';
+                const statusColor = inv.Payment_Status === 'Chưa thanh toán' ? '#e74c3c' : '#27ae60';
 
-                if (fb.Status === 'Đã hoàn thành' || fb.Status === 'Đã xử lý') {
-                    statusBadge = `<span style="color: #27ae60; font-weight: bold;">${fb.Status}</span>`;
-                    actionButton = `<span style="color: #7f8c8d; font-style: italic;">Không có hành động</span>`;
-                } else {
-                    statusBadge = `<span style="color: #e74c3c; font-weight: bold;">${fb.Status || 'Chờ xử lý'}</span>`;
-                    actionButton = `<button onclick="updateFeedbackStatus(${fb.Feedback_ID}, 'Đã hoàn thành')" 
-                                     style="background-color: #2ecc71; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                                     ✔ Đánh dấu xong
-                                     </button>`;
-                }
-
-                // Render dữ liệu ra bảng
-                const row = `
+                tbody.innerHTML += `
                     <tr>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${fb.Room_Number}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd;">
-                            <strong style="color: #2980b9;">${fb.Title}</strong><br>
-                            <span style="font-size: 14px; color: #555;">${fb.Content}</span>
-                        </td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${date}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${statusBadge}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${inv.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${Number(inv.Total_Amount).toLocaleString('vi-VN')} đ</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: ${statusColor}; font-weight: bold;">${inv.Payment_Status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
             });
-        } else {
-            console.error('Lỗi từ Server:', feedbacks.message);
         }
-    } catch (error) {
-        console.error('Lỗi khi tải danh sách phản ánh:', error);
-    }
+    } catch (error) { console.error('Lỗi tải hóa đơn:', error); }
 }
 
-// =========================================================================
-// GỌI API: CẬP NHẬT TRẠNG THÁI PHẢN ÁNH
-// =========================================================================
-window.updateFeedbackStatus = async function(feedbackId, newStatus) {
-    if (!confirm(`Bạn muốn đổi trạng thái phản ánh này thành "${newStatus}"?`)) return;
-
+window.xacNhanThuTien = async function(id) {
+    if (!confirm('Xác nhận hộ dân này đã đóng tiền?')) return;
     try {
-        const response = await fetch(`${MANAGER_API_URL}/feedbacks/${feedbackId}`, {
+        const response = await fetch(`${API_BASE}/invoice/${id}/pay`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            // Gửi key Status viết hoa chuẩn khớp với backend
-            body: JSON.stringify({ Status: newStatus })
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-
         const result = await response.json();
-        
         if (response.ok) {
-            alert(result.message); // "Da cap nhat tien do xu ly phan anh thanh cong!"
-            fetchAllFeedbacks();   // Load lại bảng ngay lập tức để cập nhật giao diện
+            alert(result.message);
+            fetchAllInvoices(); // Tải lại bảng ngay lập tức
         } else {
             alert('Lỗi: ' + result.message);
         }
-    } catch (error) {
-        console.error('Lỗi kết nối khi cập nhật:', error);
-    }
+    } catch (error) { console.error('Lỗi xử lý API:', error); }
 };
 
-// Khởi chạy việc tải danh sách phản ánh ngay khi trang web mở lên
-fetchAllFeedbacks();
+// --- QUẢN LÝ HỘ KHẨU & LỊCH SỬ CHUYỂN ĐI ---
+async function fetchHouseholds() {
+    try {
+        const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const households = await response.json();
+        
+        const tbodyActive = document.getElementById('householdTableBody');
+        const tbodyHistory = document.getElementById('moveOutHistoryBody');
+        if(!tbodyActive || !tbodyHistory) return;
+        
+        tbodyActive.innerHTML = '';
+        tbodyHistory.innerHTML = '';
+
+        let hasActive = false;
+        let hasHistory = false;
+
+        households.forEach(hh => {
+            const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
+
+            if (hh.Status === 'Đang ở') {
+                hasActive = true;
+                const actionButton = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                tbodyActive.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                    </tr>
+                `;
+            } else {
+                hasHistory = true;
+                tbodyHistory.innerHTML += `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
+                    </tr>
+                `;
+            }
+        });
+
+        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+
+    } catch (error) { console.error('Lỗi kết nối:', error); }
+}
+
+window.markAsMovedOut = async function(id) {
+    if (!confirm('Bạn có chắc chắn muốn báo hộ này đã chuyển đi? Tài khoản Web của hộ này cũng sẽ bị vô hiệu hóa!')) return;
+    try {
+        const response = await fetch(`${API_BASE}/household/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchHouseholds(); // Tự động load lại cả 2 bảng Hộ khẩu và Lịch sử
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi xử lý API:', error); }
+};
+
+// --- DỊCH VỤ VÀ TẠM TRÚ ---
+async function fetchDeclarations() {
+    try {
+        const response = await fetch(`${API_BASE}/declarations`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const declarations = await response.json();
+        
+        const tbody = document.getElementById('declarationTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (declarations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Không có đơn nào đang chờ duyệt.</td></tr>';
+        } else {
+            declarations.forEach(dec => {
+                const startDate = dec.Start_Date ? new Date(dec.Start_Date).toLocaleDateString('vi-VN') : '';
+                const endDate = dec.End_Date ? new Date(dec.End_Date).toLocaleDateString('vi-VN') : '';
+                const loai = dec.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${dec.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${dec.Full_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${loai}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate} - ${endDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${dec.Reason}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Đã duyệt')" style="background-color: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Duyệt</button>
+                            <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Từ chối')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi kết nối:', error); }
+}
+
+window.updateDeclaration = async function(id, status) {
+    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} đơn này?`)) return;
+    try {
+        const response = await fetch(`${API_BASE}/declaration/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: status })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchDeclarations(); 
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi API:', error); }
+};
+
+async function fetchAllRegisteredServices() {
+    try {
+        const response = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const services = await response.json();
+        
+        const tbody = document.getElementById('allServicesTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (services.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hộ nào đăng ký dịch vụ.</td></tr>';
+        } else {
+            services.forEach(svc => {
+                const startDate = svc.Start_Date ? new Date(svc.Start_Date).toLocaleDateString('vi-VN') : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${svc.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${svc.Service_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${svc.Quantity}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right; color: #e67e22; font-weight: bold;">${Number(svc.Estimated_Cost).toLocaleString('vi-VN')} đ</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi tải danh sách dịch vụ:', error); }
+}
+
+async function fetchServiceRequests() {
+    try {
+        const response = await fetch(`${API_BASE}/service-requests`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const pending = await response.json();
+        
+        const tbody = document.getElementById('bangDuyetDichVu'); 
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Không có yêu cầu nào chờ duyệt.</td></tr>';
+        } else {
+            pending.forEach(req => {
+                const sentDate = req.Start_Date ? new Date(req.Start_Date).toLocaleDateString('vi-VN') : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${req.Request_ID}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${sentDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${req.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;"><strong>${req.Service_Name}</strong></td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">SL: ${req.Quantity || 1}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <span style="color: #e67e22; font-weight: bold;">Chờ duyệt</span>
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button onclick="handleServiceRequest(${req.Request_ID}, 'Đã duyệt')" style="background: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; margin-right: 5px;">Duyệt</button>
+                            <button onclick="handleServiceRequest(${req.Request_ID}, 'Từ chối')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi tải yêu cầu dịch vụ:', error); }
+}
+
+window.handleServiceRequest = async function(id, status) {
+    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} yêu cầu đăng ký này?`)) return;
+    try {
+        const response = await fetch(`${API_BASE}/service-request/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: status })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            fetchServiceRequests(); 
+            fetchAllRegisteredServices(); // Load lại luôn bảng dịch vụ đang dùng nếu vừa duyệt
+        } else {
+            alert('Lỗi: ' + result.message);
+        }
+    } catch (error) { console.error('Lỗi API:', error); }
+};
+
+// ==================================================
+// 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
+// ==================================================
+fetchAllInvoices();
+fetchHouseholds(); 
+fetchDeclarations();
+fetchAllRegisteredServices();
+fetchServiceRequests();

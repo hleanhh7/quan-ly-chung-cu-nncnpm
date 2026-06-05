@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
         .header h2 { margin: 0; }
-        .btn-logout { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-logout { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;}
         .btn-logout:hover { background: #c0392b; }
         
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -18,16 +18,66 @@
         
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .btn-submit { background: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        input, select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-submit { background: #2ecc71; color: white; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px;}
         .btn-submit:hover { background: #27ae60; }
+        
+        .grid-2-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h2>Xin chào Cư dân Bluemoon!</h2>
-        <button class="btn-logout" id="btnLogout">Đăng xuất</button>
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <div id="notificationWrapper" style="position: relative; cursor: pointer;">
+                <span style="font-size: 26px;">🔔</span>
+                <span id="notiBadge" style="position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; display: none;">0</span>
+            </div>
+            <button class="btn-logout" id="btnLogout">Đăng xuất</button>
+        </div>
+    </div>
+
+    <div id="notificationPanel" style="display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); margin-bottom: 20px; border-top: 4px solid #f39c12; animation: fadeIn 0.3s;">
+        <h3 style="margin-top: 0; color: #f39c12;">📢 Bảng Tin Ban Quản Lý</h3>
+        <div id="announcementList" style="max-height: 250px; overflow-y: auto; padding-right: 10px;">
+            </div>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 25px; background: #e8f4f8; border: 1px solid #bce0ee;">
+        <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Khai Báo Hành Chính (Tạm trú / Tạm vắng)</h3>
+        <p style="margin: 0 0 15px 0; color: #555;">Khai báo nhân khẩu, tạm trú, tạm vắng dành cho người trong hộ khẩu.</p>
+        
+        <form id="declarationForm" style="max-width: 600px; margin: 0 auto; text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div class="form-group">
+                <label>ID Nhân khẩu (Người cần khai báo):</label>
+                <input type="number" id="decResidentId" required placeholder="Nhập mã số nhân khẩu...">
+            </div>
+            <div class="grid-2-cols">
+                <div class="form-group">
+                    <label>Loại khai báo:</label>
+                    <select id="decType" required>
+                        <option value="TamTru">Tạm trú</option>
+                        <option value="TamVang">Tạm vắng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lý do khai báo:</label>
+                    <input type="text" id="reason" required placeholder="Ví dụ: Đi công tác, Đi học...">
+                </div>
+            </div>
+            <div class="grid-2-cols">
+                <div class="form-group">
+                    <label>Từ ngày:</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Đến ngày:</label>
+                    <input type="date" id="endDate" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit" style="width: 100%; background: #3498db;">Gửi Khai Báo Hành Chính</button>
+        </form>
     </div>
 
     <div class="card">
@@ -46,55 +96,28 @@
         </table>
     </div>
 
-    <div class="card">
-        <h3>Khai báo Tạm trú / Tạm vắng</h3>
-        <form id="declarationForm">
-            <div class="form-group">
-                <label>Mã Nhân khẩu (Resident ID của bạn)</label>
-                <input type="number" id="residentId" required>
-            </div>
-            <div class="form-group">
-                <label>Loại khai báo</label>
-                <select id="decType" required>
-                    <option value="TamTru">Tạm trú</option>
-                    <option value="TamVang">Tạm vắng</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Từ ngày</label>
-                <input type="date" id="startDate" required>
-            </div>
-            <div class="form-group">
-                <label>Đến ngày</label>
-                <input type="date" id="endDate" required>
-            </div>
-            <div class="form-group">
-                <label>Lý do</label>
-                <input type="text" id="reason" placeholder="Ví dụ: Về quê, Công tác..." required>
-            </div>
-            <button type="submit" class="btn-submit">Gửi khai báo</button>
-        </form>
-    </div>
-
-
-    <div class="card">
-        <h3>Đăng ký Dịch vụ Chung cư</h3>
+    <div class="card" style="border-top: 4px solid #f39c12;">
+        <h3>Đăng ký Dịch vụ Cố định (Gửi xe, Internet, Rác...)</h3>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Vui lòng chọn dịch vụ và điền số lượng. Đơn đăng ký sẽ được BQL phê duyệt trước khi có hiệu lực.</p>
+        
         <form id="serviceForm">
-            <div class="form-group">
-                <label>Chọn dịch vụ</label>
-                <select id="serviceSelect" required>
-                    <option value="">-- Đang tải danh sách dịch vụ --</option>
-                </select>
+            <div class="grid-2-cols">
+                <div class="form-group">
+                    <label>Chọn Dịch Vụ:</label>
+                    <select id="serviceSelect" required>
+                        <option value="">Đang tải danh sách dịch vụ...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Số lượng (Chiếc/Gói):</label>
+                    <input type="number" id="serviceQuantity" min="1" value="1" required>
+                </div>
             </div>
             <div class="form-group">
-                <label>Số lượng (VD: Số chiếc xe máy)</label>
-                <input type="number" id="serviceQuantity" value="1" min="1" required>
-            </div>
-            <div class="form-group">
-                <label>Ngày bắt đầu sử dụng</label>
+                <label>Ngày bắt đầu sử dụng:</label>
                 <input type="date" id="serviceStartDate" required>
             </div>
-            <button type="submit" class="btn-submit">Xác nhận đăng ký</button>
+            <button type="submit" class="btn-submit">Gửi Yêu Cầu Đăng Ký</button>
         </form>
     </div>
 
@@ -129,7 +152,7 @@
     </div>
 
     <div class="card">
-        <h3>Dịch vụ đang sử dụng</h3>
+        <h3>Các Dịch Vụ Nhà Bạn Đã Đăng Ký</h3>
         <table>
             <thead>
                 <tr>
@@ -137,9 +160,59 @@
                     <th>Số lượng</th>
                     <th>Ngày bắt đầu</th>
                     <th>Đơn giá</th>
+                    <th>Trạng thái</th>
                 </tr>
             </thead>
             <tbody id="myServicesTableBody">
+                <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" style="border-top: 4px solid #27ae60;">
+        <h3>📅 Đặt lịch tiện ích công cộng (BBQ, Tennis, Gym)</h3>
+        
+        <form id="bookingForm" style="display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label>Chọn tiện ích:</label>
+                <select id="facilityName" required>
+                    <option value="Bếp BBQ số 1">Bếp BBQ số 1</option>
+                    <option value="Bếp BBQ số 2">Bếp BBQ số 2</option>
+                    <option value="Sân Tennis">Sân Tennis</option>
+                    <option value="Phòng Gym VIP">Phòng Gym VIP</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 150px;">
+                <label>Ngày sử dụng:</label>
+                <input type="date" id="bookingDate" required>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 150px;">
+                <label>Khung giờ:</label>
+                <select id="timeSlot" required>
+                    <option value="08:00 - 10:00">08:00 - 10:00</option>
+                    <option value="16:00 - 18:00">16:00 - 18:00</option>
+                    <option value="18:00 - 20:00">18:00 - 20:00</option>
+                    <option value="20:00 - 22:00">20:00 - 22:00</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn-submit" style="background: #27ae60; padding: 10px 20px;">
+                    Đặt lịch ngay
+                </button>
+            </div>
+        </form>
+
+        <h4>Lịch sử đặt chỗ của nhà bạn</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên tiện ích</th>
+                    <th>Ngày sử dụng</th>
+                    <th>Khung giờ</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="bookingList">
                 <tr><td colspan="4">Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
