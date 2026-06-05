@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Sử Hộ Đã Chuyển Đi</title>
+    <link rel="stylesheet" href="style.css"> </head>
+<body style="background-color: #f4f7f6; font-family: Arial, sans-serif;">
+    <div class="container" style="max-width: 1000px; margin: 20px auto; padding: 20px;">
+        
+        <a href="manager_dashboard.html" style="text-decoration: none; color: #3498db; font-weight: bold; font-size: 16px;">
+            ⬅ Quay lại Dashboard
+        </a>
+        
+        <div class="card" style="margin-top: 20px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <h2 style="color: #c0392b; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                Lịch Sử Hộ Đã Chuyển Đi
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                <thead>
+                    <tr style="background-color: #e74c3c; color: white;">
+                        <th style="padding: 12px; border: 1px solid #ddd;">Số Phòng</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Tên Chủ Hộ</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Ngày Chuyển Vào</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Trạng Thái</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="4" style="text-align: center; padding: 15px;">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="manager_households_history.js"></script>
+</body>
+</html>

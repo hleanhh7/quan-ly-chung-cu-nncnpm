@@ -359,6 +359,21 @@ const updateFeedbackStatus = async (req, res) => {
     }
 };
 
+
+const getMovedOutHouseholds = async (req, res) => {
+    try {
+        const request = new sql.Request();
+        const result = await request.query(`
+            SELECT * FROM Households 
+            WHERE Status = N'Đã chuyển đi' 
+            ORDER BY Move_In_Date DESC
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 
@@ -376,5 +391,6 @@ module.exports = {
     updateServiceRequestStatus,
     createAnnouncement,
     getAllFeedbacks,
-    updateFeedbackStatus
+    updateFeedbackStatus,
+    getMovedOutHouseholds
 };

@@ -55,5 +55,8 @@ router.post('/announcements', managerController.createAnnouncement);
 router.get('/feedbacks', managerController.getAllFeedbacks);
 router.put('/feedbacks/:id', managerController.updateFeedbackStatus);
 
+// Đường dẫn: GET /api/manager/households/history
+router.get('/households/history', managerController.getMovedOutHouseholds);
+
 // LUON LUON DE DONG NAY O CUOI CUNG CUA FILE
 module.exports = router;
