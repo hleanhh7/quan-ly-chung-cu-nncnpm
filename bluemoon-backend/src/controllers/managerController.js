@@ -12,7 +12,7 @@ const createHousehold = async (req, res) => {
             .input('Room_Number', sql.VarChar, Room_Number)
             .query(`
                 SELECT * FROM Households 
-                WHERE Room_Number = @Room_Number AND (Status = N'Đang cư trú' OR Status IS NULL)
+                WHERE Room_Number = @Room_Number AND (Status = N'Đang ở' OR Status IS NULL)
             `);
 
         if (checkRoom.recordset.length > 0) {
@@ -25,7 +25,7 @@ const createHousehold = async (req, res) => {
             .input('Move_In_Date', sql.Date, Move_In_Date)
             .query(`
                 INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date, Status) 
-                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang cư trú')
+                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang ở')
             `);
 
         res.status(201).json({ message: 'Thêm hộ khẩu mới thành công!' });
