@@ -192,3 +192,23 @@ GO
 ALTER TABLE ServiceRegistrations 
 ADD Created_At DATETIME DEFAULT GETDATE();
 GO
+
+USE BluemoonDB;
+GO
+
+-- Xóa bảng cũ đi
+DROP TABLE FacilityBookings;
+GO
+
+-- Tạo lại bảng mới với cột Time_Slot (Thay cho Start_Time và End_Time)
+CREATE TABLE FacilityBookings (
+    Booking_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Household_ID INT NULL,
+    Facility_Name NVARCHAR(100) NOT NULL,
+    Booking_Date DATE NOT NULL,
+    Time_Slot NVARCHAR(50) NOT NULL, -- Cột này sẽ hứng trọn chuỗi "08:00 - 10:00"
+    Status NVARCHAR(50) DEFAULT N'Chờ duyệt',
+    Created_At DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (Household_ID) REFERENCES Households(Household_ID)
+);
+GO
