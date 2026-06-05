@@ -7,20 +7,25 @@ const createHousehold = async (req, res) => {
         const { Room_Number, Owner_Name, Move_In_Date } = req.body;
         const request = new sql.Request();
         
+        // BƯỚC 1: Chỉ kiểm tra những hộ có trạng thái 'Đang cư trú' ở phòng này
         const checkRoom = await request
             .input('Room_Number', sql.VarChar, Room_Number)
-            .query('SELECT * FROM Households WHERE Room_Number = @Room_Number');
+            .query(`
+                SELECT * FROM Households 
+                WHERE Room_Number = @Room_Number AND (Status = N'Đang cư trú' OR Status IS NULL)
+            `);
 
         if (checkRoom.recordset.length > 0) {
-            return res.status(400).json({ message: 'Số phòng này đã được đăng ký!' });
+            return res.status(400).json({ message: 'Số phòng này hiện đang có người ở (chưa chuyển đi)!' });
         }
 
+        // BƯỚC 2: Thêm mới hộ khẩu và gán luôn trạng thái mặc định là 'Đang cư trú'
         await request
             .input('Owner_Name', sql.NVarChar, Owner_Name)
             .input('Move_In_Date', sql.Date, Move_In_Date)
             .query(`
-                INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date) 
-                VALUES (@Room_Number, @Owner_Name, @Move_In_Date)
+                INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date, Status) 
+                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang cư trú')
             `);
 
         res.status(201).json({ message: 'Thêm hộ khẩu mới thành công!' });
