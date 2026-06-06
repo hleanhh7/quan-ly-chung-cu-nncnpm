@@ -14,23 +14,31 @@ const getMyInvoices = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
-// API 2: Gửi khai báo tạm trú / tạm vắng
+// API 2: Gửi khai báo tạm trú / tạm vắng (Phiên bản dùng CCCD)
 const createDeclaration = async (req, res) => {
     try {
-        const householdId = req.user.householdId;
-        const { Resident_ID, Declaration_Type, Start_Date, End_Date, Reason } = req.body;
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        // Nhận Identity_Card thay vì Resident_ID từ form
+        const { Identity_Card, Declaration_Type, Start_Date, End_Date, Reason } = req.body;
         const request = new sql.Request();
 
+        // 1. Hệ thống tự động đi tìm ID nội bộ dựa trên CCCD và mã Hộ khẩu của token
         const checkResident = await request
-            .input('Resident_ID', sql.Int, Resident_ID)
+            .input('Identity_Card', sql.VarChar, Identity_Card)
             .input('Household_ID', sql.Int, householdId)
-            .query('SELECT * FROM Residents WHERE Resident_ID = @Resident_ID AND Household_ID = @Household_ID');
+            .query('SELECT Resident_ID FROM Residents WHERE Identity_Card = @Identity_Card AND Household_ID = @Household_ID');
 
+        // 2. Chặn ngay nếu nhập bừa CCCD của người lạ không thuộc nhà mình
         if (checkResident.recordset.length === 0) {
-            return res.status(403).json({ message: 'Nhân khẩu không tồn tại hoặc không thuộc hộ của bạn!' });
+            return res.status(404).json({ message: 'Không tìm thấy người nào có số CCCD này trong danh sách nhân khẩu nhà bạn!' });
         }
 
-        await request
+        const residentId = checkResident.recordset[0].Resident_ID;
+
+        // 3. Tiến hành lưu vào Database
+        const insertReq = new sql.Request();
+        await insertReq
+            .input('Resident_ID', sql.Int, residentId)
             .input('Declaration_Type', sql.VarChar, Declaration_Type)
             .input('Start_Date', sql.Date, Start_Date)
             .input('End_Date', sql.Date, End_Date)
@@ -40,10 +48,12 @@ const createDeclaration = async (req, res) => {
                 VALUES (@Resident_ID, @Declaration_Type, @Start_Date, @End_Date, @Reason)
             `);
 
-        res.status(201).json({ message: 'Đã gửi khai báo thành công, đang chờ Quản lý duyệt!' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+        res.status(201).json({ message: 'Đã gửi khai báo thành công! Vui lòng chờ BQL duyệt.' });
+    } catch (error) { 
+        console.error("LỖI KHAI BÁO TẠM TRÚ:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
-
 // API: Lấy danh sách các dịch vụ hiện có
 const getAvailableServices = async (req, res) => {
     try {

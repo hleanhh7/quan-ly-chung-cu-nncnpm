@@ -106,44 +106,42 @@ async function xacNhanDaChuyenKhoan() {
     } catch (error) { console.error('Lỗi thanh toán:', error); }
 }
 // =========================================================================
-// 3. XỬ LÝ GỬI FORM KHAI BÁO (ĐÃ CHUYỂN SANG API)
+// 3. XỬ LÝ GỬI FORM KHAI BÁO HÀNH CHÍNH
 // =========================================================================
-document.getElementById('declarationForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+const declarationForm = document.getElementById('declarationForm');
+if (declarationForm) {
+    declarationForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-    // LƯU Ý: Frontend cần có 1 ô input (hoặc hidden) chứa Resident_ID của người đang được khai báo
-    // Nếu bạn chưa có ô nhập Resident_ID trên HTML, hãy dùng prompt tạm hoặc tạo thêm ô input nhé.
-    let residentId = document.getElementById('decResidentId') ? document.getElementById('decResidentId').value : prompt('Nhập ID Nhân khẩu cần khai báo (Số):');
-    if (!residentId) return;
+        // Thu thập dữ liệu từ Form (Đã đổi thành Identity_Card)
+        const data = {
+            Identity_Card: document.getElementById('decIdentityCard').value,
+            Declaration_Type: document.getElementById('decType').value,
+            Start_Date: document.getElementById('startDate').value,
+            End_Date: document.getElementById('endDate').value,
+            Reason: document.getElementById('reason').value
+        };
 
-    const data = {
-        Resident_ID: residentId,
-        Declaration_Type: document.getElementById('decType').value,
-        Start_Date: document.getElementById('startDate').value,
-        End_Date: document.getElementById('endDate').value,
-        Reason: document.getElementById('reason').value
-    };
-
-    try {
-        const response = await fetch(`${API_BASE}/declaration`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        if (response.ok) {
-            alert('🎉 ' + result.message);
-            document.getElementById('declarationForm').reset();
-        } else {
-            alert('❌ Lỗi: ' + result.message);
-        }
-    } catch (error) { console.error('Lỗi API:', error); }
-});
-
+        try {
+            const response = await fetch(`${API_BASE}/declaration`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            if (response.ok) {
+                alert('🎉 ' + result.message);
+                document.getElementById('declarationForm').reset();
+            } else {
+                alert('❌ Lỗi: ' + result.message);
+            }
+        } catch (error) { console.error('Lỗi API:', error); }
+    });
+}
 // =========================================================================
 // 4. MODULE: QUẢN LÝ DỊCH VỤ CỐ ĐỊNH (SERVICES)
 // =========================================================================
