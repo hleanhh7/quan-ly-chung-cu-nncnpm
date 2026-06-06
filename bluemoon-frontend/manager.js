@@ -339,22 +339,28 @@ async function fetchServiceRequests() {
 }
 
 window.handleServiceRequest = async function(id, status) {
-    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} yêu cầu đăng ký này?`)) return;
+    if (!confirm(`Bạn có chắc muốn ${status.toLowerCase()} yêu cầu này?`)) return;
     try {
         const response = await fetch(`${API_BASE}/service-request/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ Status: status })
         });
+        
         const result = await response.json();
         if (response.ok) {
-            alert(result.message);
-            fetchServiceRequests(); 
-            fetchAllRegisteredServices(); // Load lại luôn bảng dịch vụ đang dùng nếu vừa duyệt
+            alert('🎉 ' + result.message);
+            
+            // CẬP NHẬT GIAO DIỆN:
+            fetchServiceRequests();      // Load lại bảng danh sách đơn chờ duyệt
+            fetchAllRegisteredServices(); // Load lại bảng dịch vụ đang dùng
+            
+            // Dòng quan trọng: Load lại bảng hóa đơn để thấy hóa đơn tự động sinh ra
+            if (typeof fetchAllInvoices === "function") fetchAllInvoices();
         } else {
-            alert('Lỗi: ' + result.message);
+            alert('❌ Lỗi: ' + result.message);
         }
-    } catch (error) { console.error('Lỗi API:', error); }
+    } catch (error) { console.error('Lỗi API duyệt dịch vụ:', error); }
 };
 
 // =========================================================================
@@ -625,6 +631,110 @@ async function capNhatTrangThaiPhanAnh(id, newStatus) {
         }
     } catch (error) { console.error('Lỗi cập nhật phản ánh:', error); }
 }
+
+// =========================================================================
+// QUẢN LÝ DANH MỤC PHÍ VÀ DỊCH VỤ
+// =========================================================================
+
+// 1. Tải danh sách
+// 1. Tải danh sách
+async function loadServiceTypes() {
+    try {
+        const response = await fetch(`${API_BASE}/services`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const tbody = document.getElementById('serviceTypesTableBody');
+        if (!tbody) return;
+
+        if (response.ok) {
+            const services = await response.json();
+            tbody.innerHTML = '';
+            if (services.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có loại phí nào trong hệ thống.</td></tr>';
+                return;
+            }
+
+            services.forEach(svc => {
+                // TỰ ĐỘNG BẮT ĐÚNG TÊN CỘT: Dù DB của bạn tên là Price, Unit_Price, hay Cost thì nó đều nhận được!
+                const giaTien = svc.Price !== undefined ? svc.Price : (svc.Unit_Price !== undefined ? svc.Unit_Price : (svc.Cost || 0));
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align: center; color: #7f8c8d; font-weight: bold;">#${svc.Service_ID}</td>
+                        <td style="font-weight: bold; color: #2c3e50;">${svc.Service_Name}</td>
+                        <td style="text-align: center; color: #e74c3c; font-weight: bold; font-size: 16px;">${Number(giaTien).toLocaleString('vi-VN')} đ</td>
+                        <td style="text-align: center;">
+                            <button onclick="suaGiaDichVu(${svc.Service_ID}, '${svc.Service_Name}', ${giaTien})" style="background: #f39c12; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 5px;">Sửa Giá</button>
+                            <button onclick="xoaDichVu(${svc.Service_ID})" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Xóa</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi load danh mục phí:', error); }
+}
+
+// 2. Thêm loại phí mới
+const formAddServiceType = document.getElementById('formAddServiceType');
+if (formAddServiceType) {
+    formAddServiceType.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const data = {
+            Service_Name: document.getElementById('newServiceName').value,
+            Price: document.getElementById('newServicePrice').value
+        };
+        try {
+            const response = await fetch(`${API_BASE}/service`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                alert((await response.json()).message);
+                formAddServiceType.reset();
+                loadServiceTypes(); // Tải lại bảng ngay lập tức
+            }
+        } catch (error) { console.error('Lỗi thêm phí:', error); }
+    });
+}
+
+// 3. Cập nhật giá
+window.suaGiaDichVu = async function(id, name, oldPrice) {
+    const newPrice = prompt(`Nhập đơn giá mới cho "${name}" (VNĐ):`, oldPrice);
+    if (newPrice === null || newPrice === "") return; // Nếu ấn Hủy
+    
+    try {
+        const response = await fetch(`${API_BASE}/service/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Price: newPrice })
+        });
+        if (response.ok) {
+            alert('Cập nhật thành công!');
+            loadServiceTypes();
+        } else {
+            alert('Lỗi: ' + (await response.json()).message);
+        }
+    } catch (error) { console.error('Lỗi cập nhật giá:', error); }
+};
+
+// 4. Xóa dịch vụ
+window.xoaDichVu = async function(id) {
+    if (!confirm('Bạn có chắc chắn muốn XÓA loại phí này? Lưu ý: Không thể xóa nếu đang có hộ dân sử dụng!')) return;
+    try {
+        const response = await fetch(`${API_BASE}/service/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            alert('Đã xóa thành công!');
+            loadServiceTypes();
+        } else {
+            alert('Lỗi: ' + (await response.json()).message);
+        }
+    } catch (error) { console.error('Lỗi xóa phí:', error); }
+};
+
+// Gọi chạy hàm hiển thị bảng khi vừa load trang
+loadServiceTypes();
 
 // Bắt buộc gọi hàm này để bảng tự load khi Admin mở trang
 loadFeedbacks();

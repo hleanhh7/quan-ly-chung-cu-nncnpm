@@ -36,5 +36,11 @@ router.post('/announcements', managerController.createAnnouncement);
 router.get('/feedbacks', managerController.getAllFeedbacks);
 router.put('/feedback/:id', managerController.updateFeedbackStatus);
 
+// QUẢN LÝ DANH MỤC PHÍ & DỊCH VỤ
+router.get('/services', managerController.getAllServiceTypes);
+router.post('/service', managerController.createServiceType);
+router.put('/service/:id', managerController.updateServicePrice);
+router.delete('/service/:id', managerController.deleteServiceType);
+
 // LUON LUON DE DONG NAY O CUOI CUNG CUA FILE
 module.exports = router;
