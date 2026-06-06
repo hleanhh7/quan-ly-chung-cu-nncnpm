@@ -85,11 +85,25 @@ const createInvoice = async (req, res) => {
 // API: Lấy toàn bộ danh sách hộ khẩu
 const getAllHouseholds = async (req, res) => {
     try {
+        const { sql } = require('../config/db');
         const request = new sql.Request();
-        const result = await request.query('SELECT * FROM Households ORDER BY Room_Number ASC');
+        
+        // Dùng LEFT JOIN để móc CCCD từ bảng Residents sang (dựa vào Tên chủ hộ)
+        const result = await request.query(`
+            SELECT 
+                h.Household_ID, 
+                h.Room_Number, 
+                h.Owner_Name, 
+                h.Move_In_Date, 
+                h.Status, 
+                r.Identity_Card 
+            FROM Households h
+            LEFT JOIN Residents r ON h.Household_ID = r.Household_ID AND h.Owner_Name = r.Full_Name
+        `);
+        
         res.status(200).json(result.recordset);
-    } catch (error) {
-        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    } catch (error) { 
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
     }
 };
 

@@ -175,11 +175,14 @@ async function fetchHouseholds() {
             if (hh.Status === 'Đang ở') {
                 hasActive = true;
                 const actionButton = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                
+                // ĐÃ THÊM CỘT CCCD VÀO ĐÂY (Nằm ngay dưới Owner_Name)
                 tbodyActive.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${hh.Owner_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #2980b9; font-weight: bold;">${hh.Identity_Card || 'Chưa cập nhật'}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
@@ -198,7 +201,8 @@ async function fetchHouseholds() {
             }
         });
 
-        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+        // Đã sửa colspan="6" thành colspan="7" cho đồng bộ với số cột mới
+        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="7" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
         if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
 
     } catch (error) { console.error('Lỗi kết nối:', error); }

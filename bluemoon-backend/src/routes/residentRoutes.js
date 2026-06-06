@@ -45,6 +45,8 @@ router.get('/feedbacks', residentController.getMyFeedbacks);
 router.put('/invoice/:id/pay', residentController.payMyInvoice);
 // Đường dẫn: GET /api/resident/profile
 router.get('/profile', residentController.getResidentProfile);
+// Lấy danh sách nhân khẩu trong hộ
+router.get('/residents', residentController.getMyResidents);
 
 // LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

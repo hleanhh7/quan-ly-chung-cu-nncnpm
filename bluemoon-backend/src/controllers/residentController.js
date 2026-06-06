@@ -287,23 +287,23 @@ const payMyInvoice = async (req, res) => {
     }
 };
 // API: Lấy danh sách nhân khẩu của nhà mình
+
+// API: Lấy danh sách nhân khẩu của nhà mình
 const getMyResidents = async (req, res) => {
     try {
         const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
         const { sql } = require('../config/db');
         const request = new sql.Request();
-        
+
         const result = await request
             .input('Household_ID', sql.Int, householdId)
-            // Lấy toàn bộ thông tin từ bảng Residents, trong đó có cột Identity_Card
             .query('SELECT * FROM Residents WHERE Household_ID = @Household_ID ORDER BY Resident_ID ASC');
-            
+
         res.status(200).json(result.recordset);
     } catch (error) { 
         res.status(500).json({ message: 'Lỗi server', error: error.message }); 
     }
 };
-
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 

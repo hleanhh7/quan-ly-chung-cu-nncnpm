@@ -479,6 +479,43 @@ async function loadMyFeedbacks() {
         }
     } catch (error) { console.error('Lỗi load phản ánh:', error); }
 }
+// =========================================================================
+// HÀM LẤY DANH SÁCH NHÂN KHẨU VÀ IN RA BẢNG
+// =========================================================================
+async function fetchMyResidents() {
+    try {
+        const response = await fetch(`${API_BASE}/residents`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const tbody = document.getElementById('bangNhanKhau'); 
+        if (!tbody) return; 
+
+        if (response.ok) {
+            const residents = await response.json();
+            tbody.innerHTML = ''; 
+
+            if (residents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có nhân khẩu nào.</td></tr>';
+                return;
+            }
+
+            residents.forEach(person => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">${person.Resident_ID}</td>
+                        <td style="font-weight:bold;">${person.Full_Name}</td>
+                        <td style="text-align:center; color:#2980b9; font-weight:bold;">${person.Identity_Card || 'Chưa có CCCD'}</td>
+                        <td style="text-align:center;">${person.Relation_With_Owner}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { 
+        console.error('Lỗi tải danh sách nhân khẩu:', error); 
+    }
+}
 
 // Bắt buộc gọi hàm này để nó tự chạy khi mở trang
 loadMyFeedbacks();
@@ -491,3 +528,4 @@ fetchServices();
 fetchMyServices();
 loadMyBookings();
 loadUserProfile();
+fetchMyResidents();
