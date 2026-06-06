@@ -17,31 +17,55 @@ const getMyInvoices = async (req, res) => {
 // API 2: Gửi khai báo tạm trú / tạm vắng
 const createDeclaration = async (req, res) => {
     try {
-        const householdId = req.user.householdId;
-        const { Resident_ID, Declaration_Type, Start_Date, End_Date, Reason } = req.body;
-        const request = new sql.Request();
+        // Nhận Identity_Card từ frontend thay vì Resident_ID
+        const { Identity_Card, Declaration_Type, Start_Date, End_Date, Reason } = req.body;
+        const sql = require('mssql');
+        
+        // Lấy ID hộ khẩu của người dùng đang đăng nhập (từ token)
+        const householdId = req.user.Household_ID; 
 
-        const checkResident = await request
-            .input('Resident_ID', sql.Int, Resident_ID)
-            .input('Household_ID', sql.Int, householdId)
-            .query('SELECT * FROM Residents WHERE Resident_ID = @Resident_ID AND Household_ID = @Household_ID');
-
-        if (checkResident.recordset.length === 0) {
-            return res.status(403).json({ message: 'Nhân khẩu không tồn tại hoặc không thuộc hộ của bạn!' });
+        if (!householdId) {
+            return res.status(400).json({ message: 'Tài khoản chưa liên kết với Hộ khẩu!' });
         }
 
+        const request = new sql.Request();
+
+        // 1. DỊCH THUẬT: Tìm Resident_ID dựa trên số CCCD
+        // Kèm theo điều kiện bảo mật: Người này PHẢI thuộc Household_ID của tài khoản đang thao tác
+        const findResident = await request
+            .input('Identity_Card', sql.VarChar, Identity_Card)
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                SELECT Resident_ID 
+                FROM Residents 
+                WHERE Identity_Card = @Identity_Card AND Household_ID = @Household_ID
+            `);
+
+        // Nếu gõ sai CCCD hoặc lấy CCCD của nhà hàng xóm điền vào -> Báo lỗi ngay
+        if (findResident.recordset.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy cư dân với số CCCD này trong Hộ khẩu của bạn. Vui lòng kiểm tra lại!' });
+        }
+
+        // Nếu tìm thấy, trích xuất ID ra
+        const validResidentId = findResident.recordset[0].Resident_ID;
+
+        // 2. GHI VÀO DATABASE: Lưu đơn khai báo với Resident_ID đã tìm được
         await request
-            .input('Declaration_Type', sql.VarChar, Declaration_Type)
+            .input('Resident_ID', sql.Int, validResidentId)
+            .input('Declaration_Type', sql.NVarChar, Declaration_Type)
             .input('Start_Date', sql.Date, Start_Date)
             .input('End_Date', sql.Date, End_Date)
             .input('Reason', sql.NVarChar, Reason)
             .query(`
-                INSERT INTO Declarations (Resident_ID, Declaration_Type, Start_Date, End_Date, Reason) 
+                INSERT INTO Declarations (Resident_ID, Declaration_Type, Start_Date, End_Date, Reason)
                 VALUES (@Resident_ID, @Declaration_Type, @Start_Date, @End_Date, @Reason)
             `);
 
-        res.status(201).json({ message: 'Đã gửi khai báo thành công, đang chờ Quản lý duyệt!' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+        res.status(201).json({ message: 'Đã gửi đơn khai báo thành công! Vui lòng chờ BQL xét duyệt.' });
+    } catch (error) {
+        console.error('Lỗi API createDeclaration:', error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
 };
 
 // API: Lấy danh sách các dịch vụ hiện có
@@ -51,6 +75,32 @@ const getAvailableServices = async (req, res) => {
         const result = await request.query('SELECT * FROM Services');
         res.status(200).json(result.recordset);
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+};
+
+// API: Lấy thông tin cá nhân của hộ đang đăng nhập
+const getResidentProfile = async (req, res) => {
+    try {
+        const householdId = req.user.Household_ID; 
+        const sql = require('mssql');
+        const request = new sql.Request();
+        
+        const result = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                SELECT Room_Number, Owner_Name 
+                FROM Households 
+                WHERE Household_ID = @Household_ID
+            `);
+
+        if (result.recordset.length > 0) {
+            res.status(200).json(result.recordset[0]);
+        } else {
+            res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu' });
+        }
+    } catch (error) {
+        console.error('Lỗi lấy profile:', error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
 };
 
 // API: Cư dân đăng ký dịch vụ
@@ -259,5 +309,6 @@ module.exports = {
     getMyBookings,
     sendFeedback,
     getMyFeedbacks,
-    payMyInvoice
+    payMyInvoice,
+    getResidentProfile
 };
