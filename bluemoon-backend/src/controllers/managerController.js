@@ -19,16 +19,28 @@ const createHousehold = async (req, res) => {
             return res.status(400).json({ message: 'Số phòng này hiện đang có người ở (chưa chuyển đi)!' });
         }
 
-        // BƯỚC 2: Thêm mới hộ khẩu và gán luôn trạng thái mặc định là 'Đang cư trú'
+       // BƯỚC 2: Thiết lập mật khẩu mặc định ban đầu
+        const defaultPassword = '123456'; 
+
+        // BƯỚC 3: Thêm mới hộ khẩu và gán luôn tài khoản trong cùng 1 Request
         await request
             .input('Owner_Name', sql.NVarChar, Owner_Name)
             .input('Move_In_Date', sql.Date, Move_In_Date)
+            .input('Password_Hash', sql.VarChar, defaultPassword) // Khớp đúng cột Password_Hash
+            .input('Role', sql.VarChar, 'Resident')
             .query(`
+                -- 1. Thêm hộ khẩu mới vào bảng Households
                 INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date, Status) 
-                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang ở')
-            `);
+                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang ở');
 
-        res.status(201).json({ message: 'Thêm hộ khẩu mới thành công!' });
+                -- 2. Lấy Household_ID vừa tự động tăng sinh ra từ lệnh trên
+                DECLARE @NewHouseholdID INT = SCOPE_IDENTITY();
+
+                -- 3. Thêm tài khoản cư dân vào bảng Accounts với đúng tên các cột
+                INSERT INTO Accounts (Household_ID, Username, Password_Hash, Role)
+                VALUES (@NewHouseholdID, @Room_Number, @Password_Hash, @Role);
+            `);
+        res.status(201).json({ message: `Thêm hộ khẩu mới thành công!\n\nTài khoản cư dân đã được cấp tự động:\n👤 Tên đăng nhập: ${Room_Number}\n🔑 Mật khẩu mặc định: ${defaultPassword}` });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }

@@ -635,3 +635,37 @@ async function capNhatTrangThaiPhanAnh(id, newStatus) {
 
 // Bắt buộc gọi hàm này để bảng tự load khi Admin mở trang
 loadFeedbacks();
+
+// =========================================================================
+// CHỨC NĂNG BÁO CHUYỂN ĐI 
+// =========================================================================
+window.updateHouseholdStatus = async function(householdId, newStatus) {
+    if (!confirm('Xác nhận: Báo hộ này đã chuyển đi? Hệ thống sẽ tự động thu hồi tài khoản web của họ!')) return;
+
+    try {
+        const currentToken = localStorage.getItem('bluemoon_token') || localStorage.getItem('token');
+
+        // BẠN LƯU Ý: Kiểm tra lại xem Route của Backend là /household/ (không s) hay /households/ (có s) để sửa chữ URL dưới đây cho khớp nhé!
+        const response = await fetch(`${API_BASE}/household/${householdId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({ Status: newStatus })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            // Tải lại bảng để dòng vừa báo chuyển đi biến mất khỏi danh sách "Đang ở"
+            fetchHouseholds(); 
+        } else {
+            alert('Lỗi từ Server: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Lỗi khi gọi API báo chuyển đi:', error);
+        alert('Mất kết nối đến máy chủ!');
+    }
+};
