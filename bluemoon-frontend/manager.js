@@ -156,52 +156,59 @@ window.xacNhanThuTien = async function(id) {
 // --- QUẢN LÝ HỘ KHẨU & LỊCH SỬ CHUYỂN ĐI ---
 async function fetchHouseholds() {
     try {
-        const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const households = await response.json();
+        const response = await fetch(`${API_BASE}/households`, { 
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
         
+        const households = await response.json();
         const tbodyActive = document.getElementById('householdTableBody');
-        const tbodyHistory = document.getElementById('moveOutHistoryBody');
-        if(!tbodyActive || !tbodyHistory) return;
+        
+        // Chỉ cần kiểm tra bảng Active (vì bảng History đã bay sang trang khác)
+        if(!tbodyActive) return; 
         
         tbodyActive.innerHTML = '';
-        tbodyHistory.innerHTML = '';
 
-        let hasActive = false;
-        let hasHistory = false;
+        // BƯỚC BẢO VỆ: Chỉ vẽ bảng khi Server trả về mã OK (200)
+        if (response.ok) {
+            let hasActive = false;
 
-        households.forEach(hh => {
-            const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
+            households.forEach(hh => {
+                const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
 
-            if (hh.Status === 'Đang ở') {
-                hasActive = true;
-                const actionButton = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
-                tbodyActive.innerHTML += `
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
-                    </tr>
-                `;
-            } else {
-                hasHistory = true;
-                tbodyHistory.innerHTML += `
-                    <tr>
-                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
-                        <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
-                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
-                        <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
-                    </tr>
-                `;
+                // SỬA CHỮ: Kiểm tra đúng chữ "Đang cư trú" hoặc "Đang ở" để bao quát hết dữ liệu
+                if (hh.Status === 'Đang cư trú' || hh.Status === 'Đang ở' || !hh.Status) {
+                    hasActive = true;
+                    // Sửa lại tên hàm thành updateHouseholdStatus cho khớp với code gốc
+                    const actionButton = `<button onclick="updateHouseholdStatus(${hh.Household_ID}, 'Đã chuyển đi')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                    
+                    tbodyActive.innerHTML += `
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status || 'Đang cư trú'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (!hasActive) {
+                tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
             }
-        });
+            
+        } else {
+            // Xử lý báo lỗi nếu Backend sập
+            tbodyActive.innerHTML = `<tr><td colspan="6" style="text-align:center; color: red;">Lỗi Server: ${households.message}</td></tr>`;
+        }
 
-        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
-        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
-
-    } catch (error) { console.error('Lỗi kết nối:', error); }
+    } catch (error) { 
+        console.error('Lỗi kết nối:', error); 
+        const tbodyActive = document.getElementById('householdTableBody');
+        if(tbodyActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Mất kết nối đến máy chủ!</td></tr>';
+    }
 }
 
 window.markAsMovedOut = async function(id) {
