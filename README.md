@@ -151,9 +151,7 @@ lưu ý, hiện nhớ check frontend để biết những chức năng hiện đ
    ┗ 📜 resident.js             # Logic Javascript, Fetch API tương tác phân hệ Cư dân
 ```
 4. Các chức năng cần update:
-   4.1: bên phần của Ban quản lý
 - gộp phần tạo hộ khẩu và cấp tài khoản thành 1
 - thêm chức năng tinh chỉnh và quản lý các loại phí
-  4.2: bên phần cư dân
 - sửa lại phần khai báo tạm trú tạm vắng: cần CCCD chứ ID nhân khẩu là gì??
-- 
+- khi cư dân đăng kí dịch vụ, bên bql không nhận được danh sách để duyệt và bên cư dân, sau khi duyệt thì nên tự động tạo hóa đơn luôn chứ không cần phải có chức năng phát hành hóa đơn
