@@ -59,7 +59,7 @@
             background: white;
             padding: 20px;
             border-radius: 0 8px 8px 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
         
@@ -184,14 +184,26 @@
                 </table>
             </div>
 
-            <div class="card">
-                <h3>Phát Hành Hóa Đơn</h3>
-                <form id="formInvoice">
-                    <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="invHouseholdId" required></div>
-                    <div class="form-group"><label>Tháng</label><input type="number" id="invMonth" min="1" max="12" required></div>
-                    <div class="form-group"><label>Năm</label><input type="number" id="invYear" required></div>
-                    <div class="form-group"><label>Tổng tiền (VNĐ)</label><input type="number" id="invTotal" required></div>
-                    <button type="submit" class="btn-submit">Tạo Hóa Đơn</button>
+            <div class="card" style="border-left: 4px solid #27ae60; margin-bottom: 20px;">
+                <h3>⚡ Phát Hành Hóa Đơn Tự Động</h3>
+                <p style="color: gray; font-size: 14px;">Hệ thống sẽ tự động quét Dịch vụ từng hộ + Phí quản lý để ra
+                    tổng tiền cuối cùng.</p>
+                <form id="formBatchInvoice" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Tháng</label>
+                        <input type="number" id="billingMonth" min="1" max="12" style="padding: 8px; width: 80px;"
+                            required>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Năm</label>
+                        <input type="number" id="billingYear" style="padding: 8px; width: 100px;" required>
+                    </div>
+                    <div>
+                        <button type="submit"
+                            style="background-color: #27ae60; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; height: 35px;">
+                            🚀 Bắt Đầu Quét & Phát Hành
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -70,32 +70,106 @@ const addResident = async (req, res) => {
     }
 };
 
-// API: Tạo hóa đơn hàng tháng cho hộ khẩu
-const createInvoice = async (req, res) => {
+// API: Phát hành hóa đơn đồng loạt cho toàn bộ cư dân đang ở
+const generateBatchInvoices = async (req, res) => {
     try {
-        const { Household_ID, Billing_Month, Billing_Year, Total_Amount } = req.body;
+        const { Billing_Month, Billing_Year } = req.body; 
         const request = new sql.Request();
 
-        const checkHousehold = await request
-            .input('Household_ID', sql.Int, Household_ID)
-            .query('SELECT * FROM Households WHERE Household_ID = @Household_ID');
-
-        if (checkHousehold.recordset.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy thông tin hộ khẩu này!' });
-        }
-
+        // Sử dụng một Transaction ngầm của SQL để đảm bảo: Hoặc là tạo được cả Hóa đơn + Chi tiết, hoặc là không tạo gì cả (tránh lỗi mất đồng bộ dữ liệu)
         await request
             .input('Billing_Month', sql.Int, Billing_Month)
             .input('Billing_Year', sql.Int, Billing_Year)
-            .input('Total_Amount', sql.Decimal(18, 2), Total_Amount)
             .query(`
-                INSERT INTO Invoices (Household_ID, Billing_Month, Billing_Year, Total_Amount) 
-                VALUES (@Household_ID, @Billing_Month, @Billing_Year, @Total_Amount)
+                BEGIN TRANSACTION;
+                BEGIN TRY
+                    -- 1. Tạo một bảng tạm trong bộ nhớ để hứng các cặp ID (Invoice_ID và Household_ID) vừa được sinh ra
+                    DECLARE @InsertedInvoices TABLE (Invoice_ID INT, Household_ID INT);
+
+                    -- 2. Tính tổng số tiền của các Phí bắt buộc (Is_Mandatory = 1)
+                    DECLARE @MandatoryTotal DECIMAL(18,2) = (
+                        SELECT ISNULL(SUM(Unit_Price), 0) FROM Services WHERE Is_Mandatory = 1
+                    );
+
+                    -- 3. Gom nhóm và tính tổng tiền dịch vụ đăng ký riêng lẻ của từng hộ
+                    -- (Chỉ lấy các dịch vụ đang ở trạng thái 'Đang sử dụng')
+                    WITH ServiceFees AS (
+                        SELECT 
+                            sr.Household_ID, 
+                            ISNULL(SUM(sr.Quantity * s.Unit_Price), 0) AS TotalServiceFee
+                        FROM ServiceRegistrations sr
+                        JOIN Services s ON sr.Service_ID = s.Service_ID
+                        WHERE sr.Status = N'Đang sử dụng'
+                        GROUP BY sr.Household_ID
+                    ),
+                    -- Lọc ra danh sách các hộ đang cư trú chưa được phát hành hóa đơn tháng này
+                    ActiveHouseholds AS (
+                        SELECT h.Household_ID
+                        FROM Households h
+                        WHERE (h.Status = N'Đang cư trú' OR h.Status = N'Đang ở')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM Invoices i 
+                              WHERE i.Household_ID = h.Household_ID 
+                                AND i.Billing_Month = @Billing_Month 
+                                AND i.Billing_Year = @Billing_Year
+                          )
+                    )
+
+                    -- 4. CHÈN VÀO BẢNG INVOICES (BẢNG TỔNG)
+                    -- Dùng OUTPUT để bắt lại Invoice_ID tự động tăng vừa sinh cùng với Household_ID tương ứng nạp vào bảng tạm
+                    INSERT INTO Invoices (Household_ID, Billing_Month, Billing_Year, Total_Amount, Payment_Status)
+                    OUTPUT inserted.Invoice_ID, inserted.Household_ID INTO @InsertedInvoices
+                    SELECT 
+                        ah.Household_ID, 
+                        @Billing_Month, 
+                        @Billing_Year, 
+                        (@MandatoryTotal + ISNULL(sf.TotalServiceFee, 0)) AS Final_Amount, 
+                        N'Chưa thanh toán'
+                    FROM ActiveHouseholds ah
+                    LEFT JOIN ServiceFees sf ON ah.Household_ID = sf.Household_ID;
+
+
+                    -- 5. CHÈN VÀO BẢNG INVOICEDETAILS (CHI TIẾT PHÍ BẮT BUỘC)
+                    -- Thêm cột SubTotal = (1 * s.Unit_Price)
+                    INSERT INTO InvoiceDetails (Invoice_ID, Service_ID, Quantity, Unit_Price, SubTotal)
+                    SELECT 
+                        ii.Invoice_ID, 
+                        s.Service_ID, 
+                        1, 
+                        s.Unit_Price,
+                        s.Unit_Price -- Vì số lượng là 1 nên SubTotal chính bằng Unit_Price
+                    FROM @InsertedInvoices ii
+                    CROSS JOIN Services s
+                    WHERE s.Is_Mandatory = 1;
+
+
+                    -- 6. CHÈN VÀO BẢNG INVOICEDETAILS (CHI TIẾT DỊCH VỤ RIÊNG LẺ CỦA TỪNG HỘ)
+                    -- Thêm cột SubTotal = (sr.Quantity * s.Unit_Price)
+                    INSERT INTO InvoiceDetails (Invoice_ID, Service_ID, Quantity, Unit_Price, SubTotal)
+                    SELECT 
+                        ii.Invoice_ID, 
+                        sr.Service_ID, 
+                        sr.Quantity, 
+                        s.Unit_Price,
+                        (sr.Quantity * s.Unit_Price) -- Máy chủ sẽ tự nhân số lượng với đơn giá
+                    FROM @InsertedInvoices ii
+                    JOIN ServiceRegistrations sr ON ii.Household_ID = sr.Household_ID
+                    JOIN Services s ON sr.Service_ID = s.Service_ID
+                    WHERE sr.Status = N'Đang sử dụng';
+
+                    COMMIT TRANSACTION;
+                END TRY
+                BEGIN CATCH
+                    ROLLBACK TRANSACTION;
+                    THROW;
+                END CATCH
             `);
 
-        res.status(201).json({ message: `Tạo hóa đơn tháng ${Billing_Month}/${Billing_Year} thành công!` });
+        res.status(201).json({ message: `Đã tự động tính toán, bóc tách chi tiết và phát hành hóa đơn tháng ${Billing_Month}/${Billing_Year} thành công!` });
+
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi server', error: error.message });
+        console.error('❌ LỖI TẠO HÓA ĐƠN TỰ ĐỘNG 2 LỚP:', error.message);
+        res.status(500).json({ message: 'Lỗi server khi tính toán hóa đơn', error: error.message });
     }
 };
 
@@ -430,7 +504,7 @@ const getMovedOutHouseholds = async (req, res) => {
 module.exports = { 
     createHousehold, 
     addResident, 
-    createInvoice, 
+    generateBatchInvoices, 
     getAllHouseholds, 
     createResidentAccount, 
     getPendingDeclarations, 

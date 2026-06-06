@@ -19,8 +19,7 @@ router.post('/account', managerController.createResidentAccount);
 router.get('/registered-services', managerController.getAllRegisteredServices);
 router.get('/service-requests', managerController.getPendingServiceRequests);
 router.put('/service-request/:id', managerController.updateServiceRequestStatus);
-router.post('/invoice', managerController.createInvoice);
-router.get('/invoices', managerController.getAllInvoices);
+router.post('/invoices/batch', managerController.generateBatchInvoices);router.get('/invoices', managerController.getAllInvoices);
 router.put('/invoice/:id/pay', managerController.payInvoice);
 
 // ĐƯỜNG DẪN KHAI BÁO TẠM TRÚ / TẠM VẮNG

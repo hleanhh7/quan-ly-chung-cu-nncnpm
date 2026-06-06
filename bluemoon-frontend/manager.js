@@ -60,16 +60,7 @@ document.getElementById('formResident').addEventListener('submit', function(e) {
     callManagerApi(`${API_BASE}/resident`, data, 'formResident');
 });
 
-document.getElementById('formInvoice').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const data = {
-        Household_ID: document.getElementById('invHouseholdId').value,
-        Billing_Month: document.getElementById('invMonth').value,
-        Billing_Year: document.getElementById('invYear').value,
-        Total_Amount: document.getElementById('invTotal').value
-    };
-    callManagerApi(`${API_BASE}/invoice`, data, 'formInvoice', fetchAllInvoices);
-});
+
 
 document.getElementById('formAccount').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -135,6 +126,42 @@ async function fetchAllInvoices() {
         }
     } catch (error) { console.error('Lỗi tải hóa đơn:', error); }
 }
+
+// =========================================================================
+// CHỨC NĂNG PHÁT HÀNH HÓA ĐƠN ĐỒNG LOẠT
+// =========================================================================
+
+// 1. Tự động điền tháng/năm hiện tại khi tải trang
+document.addEventListener('DOMContentLoaded', () => {
+    const monthInput = document.getElementById('billingMonth');
+    const yearInput = document.getElementById('billingYear');
+    
+    if(monthInput && yearInput) {
+        const today = new Date();
+        // JavaScript getMonth() đếm từ 0, nên phải cộng 1
+        monthInput.value = today.getMonth() + 1; 
+        yearInput.value = today.getFullYear();
+    }
+});
+
+// 2. Xử lý khi nhấn nút Phát Hành
+document.getElementById('formBatchInvoice').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const data = {
+        Billing_Month: document.getElementById('billingMonth').value,
+        Billing_Year: document.getElementById('billingYear').value,
+    };
+
+    // Hỏi xác nhận trước khi phát hành hàng loạt
+    if (!confirm(`Bạn có chắc chắn muốn phát hành hóa đơn tháng ${data.Billing_Month}/${data.Billing_Year} với mức phí ${Number(data.Total_Amount).toLocaleString('vi-VN')} VNĐ cho TOÀN BỘ chung cư?`)) {
+        return;
+    }
+
+    // Gọi API (Bạn hãy nhớ kiểm tra lại route ở file managerRoutes.js xem có đúng là '/invoices/batch' không)
+    callManagerApi(`${API_BASE}/invoices/batch`, data, 'formBatchInvoice', fetchAllInvoices);
+});
+
 
 window.xacNhanThuTien = async function(id) {
     if (!confirm('Xác nhận hộ dân này đã đóng tiền?')) return;
