@@ -28,7 +28,7 @@
 <body>
 
     <div class="header">
-        <h2>Xin chào Cư dân Bluemoon!</h2>
+        <h2 id="userGreeting">Xin chào Cư dân Bluemoon!</h2>
         <div style="display: flex; align-items: center; gap: 25px;">
             <div id="notificationWrapper" style="position: relative; cursor: pointer;">
                 <span style="font-size: 26px;">🔔</span>
@@ -50,8 +50,8 @@
         
         <form id="declarationForm" style="max-width: 600px; margin: 0 auto; text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <div class="form-group">
-                <label>ID Nhân khẩu (Người cần khai báo):</label>
-                <input type="number" id="decResidentId" required placeholder="Nhập mã số nhân khẩu...">
+                <label>Số Căn cước công dân (CCCD) của người cần khai báo:</label>
+                <input type="text" id="decIdentity" placeholder="Nhập số CCCD (9 hoặc 12 số)..." required>
             </div>
             <div class="grid-2-cols">
                 <div class="form-group">
@@ -59,7 +59,7 @@
                     <select id="decType" required>
                         <option value="TamTru">Tạm trú</option>
                         <option value="TamVang">Tạm vắng</option>
-                    </select>
+                    </select>   
                 </div>
                 <div class="form-group">
                     <label>Lý do khai báo:</label>

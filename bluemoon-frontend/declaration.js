@@ -11,13 +11,13 @@ if (!token || role !== 'Resident') {
 document.getElementById('declarationForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const data = {
-        Resident_ID: document.getElementById('residentId').value,
-        Declaration_Type: document.getElementById('decType').value,
-        Start_Date: document.getElementById('startDate').value,
-        End_Date: document.getElementById('endDate').value,
-        Reason: document.getElementById('reason').value
-    };
+const data = {
+    Identity_Card: document.getElementById('decIdentity').value, // Sửa dòng này
+    Declaration_Type: document.getElementById('decType').value,
+    Start_Date: document.getElementById('startDate').value,
+    End_Date: document.getElementById('endDate').value,
+    Reason: document.getElementById('reason').value
+};
 
     try {
         const response = await fetch('http://localhost:5000/api/resident/declaration', {

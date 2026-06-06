@@ -105,6 +105,26 @@ async function xacNhanDaChuyenKhoan() {
         }
     } catch (error) { console.error('Lỗi thanh toán:', error); }
 }
+// Hàm tải thông tin cá nhân để chào hỏi
+async function loadUserProfile() {
+    try {
+        const response = await fetch(`${API_BASE}/profile`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const greetingElement = document.getElementById('userGreeting');
+            if (greetingElement) {
+                // Hiển thị tên và tô màu nổi bật cho Số phòng
+                greetingElement.innerHTML = `👋 Xin chào hộ dân phòng <span style="color: #f1c40f;">${data.Room_Number}</span> - ${data.Owner_Name}`;
+            }
+        }
+    } catch (error) {
+        console.error('Lỗi tải thông tin cá nhân:', error);
+    }
+}
 // =========================================================================
 // 3. XỬ LÝ GỬI FORM KHAI BÁO (ĐÃ CHUYỂN SANG API)
 // =========================================================================
@@ -470,3 +490,4 @@ fetchInvoices();
 fetchServices();
 fetchMyServices();
 loadMyBookings();
+loadUserProfile();
