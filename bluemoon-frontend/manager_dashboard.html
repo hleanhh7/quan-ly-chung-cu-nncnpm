@@ -267,35 +267,56 @@
     </div>
 
     <div id="tab-taikhoan" class="tab-content">
-        <div class="container">
-            <div class="card">
-                <h3>Cấp Tài Khoản Cư Dân</h3>
-                <form id="formAccount">
-                    <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="accHouseholdId" required></div>
-                    <div class="form-group"><label>Tên đăng nhập mới</label><input type="text" id="accUsername" required></div>
-                    <div class="form-group"><label>Mật khẩu khởi tạo</label><input type="password" id="accPassword" required></div>
-                    <button type="submit" class="btn-submit">Tạo Tài Khoản</button>
-                </form>
-            </div>
-            <div class="card" style="border-top: 4px solid #f39c12; margin-top: 20px;">
-    <h3>📢 Phát Thông Báo Cho Cư Dân</h3>
-    <form id="formAnnouncement">
-        <div class="form-group">
-            <label>Tiêu đề thông báo:</label>
-            <input type="text" id="annTitle" placeholder="VD: Lịch cúp điện ngày mai..." required>
+    <div class="container">
+        
+        <div class="card">
+            <h3>Cấp Tài Khoản Cư Dân</h3>
+            <form id="formAccount">
+                <div class="form-group"><label>ID Hộ Khẩu</label><input type="number" id="accHouseholdId" required></div>
+                <div class="form-group"><label>Tên đăng nhập mới</label><input type="text" id="accUsername" required></div>
+                <div class="form-group"><label>Mật khẩu khởi tạo</label><input type="password" id="accPassword" required></div>
+                <button type="submit" class="btn-submit">Tạo Tài Khoản</button>
+            </form>
         </div>
-        <div class="form-group">
-            <label>Nội dung chi tiết:</label>
-            <textarea id="annContent" rows="4" required placeholder="Nhập nội dung cần thông báo..."></textarea>
+
+        <div class="card" style="border-top: 4px solid #f39c12;">
+            <h3>📢 Phát Thông Báo Cho Cư Dân</h3>
+            <form id="formAnnouncement">
+                <div class="form-group">
+                    <label>Tiêu đề thông báo:</label>
+                    <input type="text" id="annTitle" placeholder="VD: Lịch cúp điện ngày mai..." required>
+                </div>
+                <div class="form-group">
+                    <label>Nội dung chi tiết:</label>
+                    <textarea id="annContent" rows="4" required placeholder="Nhập nội dung cần thông báo..."></textarea>
+                </div>
+                <button type="submit" class="btn-submit" style="background: #f39c12;">Phát Loa Thông Báo</button>
+            </form>
         </div>
-        <button type="submit" class="btn-submit" style="background: #f39c12;">Phát Loa Thông Báo</button>
-    </form>
-</div>
+        <div class="card full-width" style="border-top: 4px solid #e74c3c; margin-top: 10px;">
+            <h3 style="color: #c0392b;">📮 Tiếp Nhận Phản Ánh & Góp Ý Từ Cư Dân</h3>
+            <table>
+                <thead>
+                    <tr style="background-color: #e74c3c; color: white;">
+                        <th>Ngày gửi</th>
+                        <th>Phòng</th>
+                        <th>Tiêu đề</th>
+                        <th>Nội dung chi tiết</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="bangQuanLyPhanAnh">
+                    <tr><td colspan="6">Đang tải danh sách phản ánh...</td></tr>
+                </tbody>
+            </table>
         </div>
+
     </div>
+</div>
 
     <script>
-        // Xử lý chuyển Tab mượt mà
+        // Xử lý chuyển Tab 
         function openTab(evt, tabName) {
             // Ẩn nội dung của tất cả các tab
             var contents = document.getElementsByClassName("tab-content");
@@ -336,6 +357,29 @@
             }
         }
     </script>
+
+    <div id="modalThuTien" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+        <div style="background:white; width:400px; margin: 100px auto; padding:25px; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+            <h3 style="color:#27ae60; margin-top:0; text-align:center; border-bottom:2px solid #ecf0f1; padding-bottom:10px;">💵 Thu Tiền Hóa Đơn</h3>
+            <p style="font-size: 16px;"><strong>Mã Hóa Đơn:</strong> <span id="mt_maHD"></span></p>
+            <p style="font-size: 16px;"><strong>Tổng phải thu:</strong> <span id="mt_tongTien" style="color:#e74c3c; font-weight:bold; font-size: 18px;"></span> đ</p>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label style="color:#2980b9;">Khách đưa (VNĐ):</label>
+                <input type="number" id="mt_khachDua" onkeyup="tinhTienThua()" placeholder="Nhập số tiền khách đưa..." style="font-size: 16px; font-weight: bold; padding: 10px;">
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 6px;">
+                <strong>Tiền thừa trả khách:</strong> 
+                <span id="mt_tienThua" style="color:#27ae60; font-weight:bold; font-size: 20px;">0</span> đ
+            </p>
+            
+            <div style="display:flex; justify-content:space-between; margin-top:25px;">
+                <button onclick="dongModalThuTien()" style="background:#95a5a6; color:white; padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Hủy Bỏ</button>
+                <button onclick="xacNhanThuTien()" style="background:#27ae60; color:white; padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Xác Nhận Thu Tiền</button>
+            </div>
+        </div>
+    </div>
     <script src="manager.js"></script>
 </body>
 </html>

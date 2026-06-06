@@ -491,6 +491,64 @@ async function drawCharts() {
 // Chạy hàm vẽ biểu đồ ngay khi mở trang
 drawCharts();
 
+
+// =========================================================================
+// XỬ LÝ MÁY TÍNH TIỀN (THU TIỀN MẶT BÊN ADMIN)
+// =========================================================================
+let currentInvoiceId = null;
+let currentInvoiceTotal = 0;
+
+// Hàm này được gọi khi Admin bấm nút "Thu Tiền" trên bảng hóa đơn
+function moModalThuTien(id, total) {
+    currentInvoiceId = id;
+    currentInvoiceTotal = total;
+    document.getElementById('mt_maHD').innerText = '#' + id;
+    document.getElementById('mt_tongTien').innerText = total.toLocaleString('vi-VN');
+    document.getElementById('mt_khachDua').value = '';
+    document.getElementById('mt_tienThua').innerText = '0';
+    document.getElementById('mt_tienThua').style.color = '#27ae60';
+    document.getElementById('modalThuTien').style.display = 'block';
+}
+
+function dongModalThuTien() {
+    document.getElementById('modalThuTien').style.display = 'none';
+}
+
+function tinhTienThua() {
+    const khachDua = parseInt(document.getElementById('mt_khachDua').value) || 0;
+    const tienThua = khachDua - currentInvoiceTotal;
+    const hienThi = document.getElementById('mt_tienThua');
+    
+    if (tienThua < 0) {
+        hienThi.innerText = 'Khách đưa chưa đủ!';
+        hienThi.style.color = '#e74c3c'; // Màu đỏ cảnh báo
+    } else {
+        hienThi.innerText = tienThua.toLocaleString('vi-VN');
+        hienThi.style.color = '#27ae60'; // Màu xanh an toàn
+    }
+}
+
+async function xacNhanThuTien() {
+    const khachDua = parseInt(document.getElementById('mt_khachDua').value) || 0;
+    if (khachDua < currentInvoiceTotal) {
+        alert('❌ Không thể xác nhận: Khách đưa chưa đủ tiền!');
+        return;
+    }
+    
+    // Gọi API payInvoice cũ đã có sẵn ở Backend Admin
+    try {
+        const response = await fetch(`${API_BASE}/invoice/${currentInvoiceId}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            alert('🎉 Thu tiền và xuất biên lai thành công!');
+            dongModalThuTien();
+            location.reload(); // Tải lại trang để cập nhật bảng và biểu đồ Doanh thu
+        }
+    } catch (error) { console.error('Lỗi thu tiền:', error); }
+}
+
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
 // ==================================================
@@ -499,3 +557,74 @@ fetchHouseholds();
 fetchDeclarations();
 fetchAllRegisteredServices();
 fetchServiceRequests();
+
+// =========================================================================
+// XỬ LÝ PHẢN ÁNH / GÓP Ý (BÊN ADMIN)
+// =========================================================================
+async function loadFeedbacks() {
+    try {
+        const response = await fetch(`${API_BASE}/feedbacks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const tbody = document.getElementById('bangQuanLyPhanAnh');
+        if (!tbody) return;
+
+        if (response.ok) {
+            const feedbacks = await response.json();
+            tbody.innerHTML = '';
+            
+            if (feedbacks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: #7f8c8d;">Chưa có phản ánh nào từ cư dân.</td></tr>';
+                return;
+            }
+            
+            feedbacks.forEach(fb => {
+                const dateOnly = new Date(fb.Created_At).toLocaleDateString('vi-VN');
+                let color = fb.Status === 'Đã xử lý' ? '#27ae60' : (fb.Status === 'Đang xử lý' ? '#3498db' : '#f39c12');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">${dateOnly}</td>
+                        <td style="text-align:center; font-weight:bold; color:#2980b9;">${fb.Room_Number}</td>
+                        <td><strong>${fb.Title}</strong></td>
+                        <td style="text-align:left; max-width: 300px;">${fb.Content}</td>
+                        <td style="color:${color}; font-weight:bold; text-align:center;">${fb.Status}</td>
+                        <td style="text-align:center;">
+                            <select onchange="capNhatTrangThaiPhanAnh(${fb.Feedback_ID}, this.value)" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer;">
+                                <option value="" disabled selected>Đổi trạng thái...</option>
+                                <option value="Đang xử lý">Đang xử lý</option>
+                                <option value="Đã xử lý">Đã xử lý</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi load phản ánh:', error); }
+}
+
+async function capNhatTrangThaiPhanAnh(id, newStatus) {
+    if (!confirm(`Chuyển trạng thái phản ánh này thành "${newStatus}"?`)) {
+        loadFeedbacks(); // Hủy thì reset lại ô select
+        return; 
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/feedback/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: newStatus })
+        });
+        
+        if (response.ok) {
+            alert('🎉 Đã cập nhật tiến độ xử lý!');
+            loadFeedbacks(); // Tải lại bảng ngay lập tức
+        } else {
+            const err = await response.json();
+            alert('❌ Lỗi: ' + err.message);
+        }
+    } catch (error) { console.error('Lỗi cập nhật phản ánh:', error); }
+}
+
+// Bắt buộc gọi hàm này để bảng tự load khi Admin mở trang
+loadFeedbacks();

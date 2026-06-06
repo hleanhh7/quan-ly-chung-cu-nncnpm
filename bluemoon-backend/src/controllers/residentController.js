@@ -103,24 +103,6 @@ const getAnnouncements = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
-// API: Gửi phản ánh
-const sendFeedback = async (req, res) => {
-    try {
-        const householdId = req.user.householdId; 
-        const { Title, Content } = req.body;
-        if (!householdId) return res.status(403).json({ message: 'Tài khoản chưa liên kết căn hộ!' });
-        
-        const pool = await sql.connect();
-        await pool.request()
-            .input('Household_ID', sql.Int, householdId)
-            .input('Title', sql.NVarChar, Title)
-            .input('Content', sql.NVarChar, Content)
-            .query('INSERT INTO Feedbacks (Household_ID, Title, Content) VALUES (@Household_ID, @Title, @Content)');
-            
-        res.status(201).json({ message: 'Gửi phản ánh thành công! Ban quản lý đã tiếp nhận yêu cầu.' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
-};
-
 // API: Thêm nhân khẩu (VÁ LỖI BẢO MẬT)
 const addResident = async (req, res) => {
     try {
@@ -194,6 +176,77 @@ const getMyBookings = async (req, res) => {
 };
 
 
+// =========================================================================
+// TÍNH NĂNG: GỬI PHẢN ÁNH / GÓP Ý
+// =========================================================================
+
+// API: Gửi phản ánh mới
+const sendFeedback = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const { title, content } = req.body;
+        
+        // Dùng new sql.Request() cho đồng bộ với các hàm trên
+        const request = new sql.Request();
+
+        await request
+            .input('Household_ID', sql.Int, householdId)
+            .input('Title', sql.NVarChar, title)
+            .input('Content', sql.NVarChar, content)
+            .query(`
+                INSERT INTO Feedbacks (Household_ID, Title, Content) 
+                VALUES (@Household_ID, @Title, @Content)
+            `);
+
+        res.status(201).json({ message: 'Gửi phản ánh thành công! BQL sẽ sớm tiếp nhận.' });
+    } catch (error) {
+        console.error("LỖI GỬI PHẢN ÁNH:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Xem lịch sử phản ánh của nhà mình
+const getMyFeedbacks = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const request = new sql.Request();
+        
+        const result = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                SELECT * FROM Feedbacks 
+                WHERE Household_ID = @Household_ID 
+                ORDER BY Created_At DESC
+            `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Cư dân tự thanh toán Online (Giả lập)
+const payMyInvoice = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const { id } = req.params;
+        const pool = await sql.connect();
+
+        // Cập nhật trạng thái hóa đơn
+        await pool.request()
+            .input('Invoice_ID', sql.Int, id)
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                UPDATE Invoices 
+                SET Payment_Status = N'Đã thanh toán', Payment_Date = GETDATE() 
+                WHERE Invoice_ID = @Invoice_ID AND Household_ID = @Household_ID
+            `);
+
+        res.status(200).json({ message: 'Thanh toán Online thành công qua cổng thanh toán!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 
@@ -201,8 +254,10 @@ module.exports = {
     registerService, 
     getMyRegisteredServices,
     getAnnouncements,
-    sendFeedback,
     addResident,
     bookFacility,
-    getMyBookings
+    getMyBookings,
+    sendFeedback,
+    getMyFeedbacks,
+    payMyInvoice
 };
