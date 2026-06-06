@@ -32,13 +32,20 @@ async function fetchInvoices() {
             } else {
                 invoices.forEach(inv => {
                     const statusColor = inv.Payment_Status === 'Chưa thanh toán' ? 'red' : 'green';
+                    let actionHtml = '';
+                    
+                    // SỬA LỖI Ở ĐÂY: Truyền thêm tham số thứ 2 là inv.Total_Amount vào hàm
+                    if (inv.Payment_Status === 'Chưa thanh toán') {
+                        actionHtml = `<button onclick="thanhToanOnline(${inv.Invoice_ID}, ${inv.Total_Amount})" style="background:#3498db; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Thanh toán Online</button>`;
+                    } else {
+                        actionHtml = `<span style="color:#27ae60; font-weight:bold;">✅ Đã thanh toán</span>`;
+                    }
+
                     tbody.innerHTML += `
                         <tr>
                             <td style="text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
-                            <td style="text-align: right; font-weight: bold;">${inv.Total_Amount.toLocaleString('vi-VN')} đ</td>
-                            <td style="color: ${statusColor}; font-weight: bold; text-align: center;">
-                                ${inv.Payment_Status}
-                            </td>
+                            <td style="text-align: right; font-weight: bold; color: #e74c3c;">${inv.Total_Amount.toLocaleString('vi-VN')} đ</td>
+                            <td style="text-align: center;">${actionHtml}</td>
                         </tr>
                     `;
                 });
@@ -49,6 +56,55 @@ async function fetchInvoices() {
     } catch (error) { console.error('Lỗi kết nối:', error); }
 }
 
+// =========================================================================
+// XỬ LÝ THANH TOÁN QR ĐỘNG (VIETQR THẬT)
+// =========================================================================
+let currentPayingInvoiceId = null;
+
+async function thanhToanOnline(invoiceId, totalAmount) {
+    currentPayingInvoiceId = invoiceId;
+    
+    // THÔNG TIN TÀI KHOẢN NGÂN HÀNG CỦA BAN QUẢN LÝ
+    const BANK_ID = 'MB';                   // Ngân hàng (Ví dụ: MB, VCB, TCB...)
+    const ACCOUNT_NO = '03997886868';        // Số tài khoản nhận tiền
+    const ACCOUNT_NAME = 'HO SY SON'; // Tên chủ tài khoản
+    
+    // Nội dung chuyển khoản tự động
+    const CONTENT = `BLUEMOON TT HD ${invoiceId}`; 
+    
+    // Gọi API của VietQR để vẽ ảnh
+    const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${totalAmount}&addInfo=${encodeURIComponent(CONTENT)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+    
+    // Gắn dữ liệu vào Modal QR
+    document.getElementById('qrInvoiceId').innerText = '#' + invoiceId;
+    document.getElementById('qrAmount').innerText = totalAmount.toLocaleString('vi-VN');
+    document.getElementById('imgQR').src = qrUrl;
+    
+    // Hiện bảng quét mã QR lên
+    document.getElementById('modalQR').style.display = 'block';
+}
+
+function dongModalQR() {
+    document.getElementById('modalQR').style.display = 'none';
+}
+
+async function xacNhanDaChuyenKhoan() {
+    try {
+        const response = await fetch(`${API_BASE}/invoice/${currentPayingInvoiceId}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            alert('🎉 Hệ thống đã ghi nhận thanh toán thành công! BQL sẽ tiến hành đối soát hóa đơn của bạn.');
+            dongModalQR();
+            fetchInvoices(); // Làm mới bảng
+        } else {
+            const data = await response.json();
+            alert('❌ Lỗi hệ thống: ' + data.message);
+        }
+    } catch (error) { console.error('Lỗi thanh toán:', error); }
+}
 // =========================================================================
 // 3. XỬ LÝ GỬI FORM KHAI BÁO (ĐÃ CHUYỂN SANG API)
 // =========================================================================
@@ -340,6 +396,72 @@ document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('bluemoon_role');
     window.location.href = 'index.html';
 });
+
+// =========================================================================
+// XỬ LÝ PHẢN ÁNH / GÓP Ý (CƯ DÂN)
+// =========================================================================
+const formFeedback = document.getElementById('formFeedback');
+if (formFeedback) {
+    formFeedback.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('fbTitle').value;
+        const content = document.getElementById('fbContent').value;
+
+        try {
+            const response = await fetch(`${API_BASE}/feedbacks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ title, content })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert('🎉 ' + data.message);
+                formFeedback.reset();
+                loadMyFeedbacks(); // Tải lại bảng ngay lập tức
+            } else {
+                alert('❌ Lỗi: ' + data.message);
+            }
+        } catch (error) { console.error('Lỗi khi gửi phản ánh:', error); }
+    });
+}
+
+async function loadMyFeedbacks() {
+    try {
+        const response = await fetch(`${API_BASE}/feedbacks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const tbody = document.getElementById('bangLichSuPhanAnh');
+        if (!tbody) return;
+
+        if (response.ok) {
+            const feedbacks = await response.json();
+            tbody.innerHTML = '';
+            
+            if (feedbacks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Bạn chưa gửi phản ánh nào.</td></tr>';
+                return;
+            }
+            
+            feedbacks.forEach(fb => {
+                const date = new Date(fb.Created_At).toLocaleDateString('vi-VN');
+                // Tự động đổi màu chữ theo trạng thái
+                let color = fb.Status === 'Đã xử lý' ? '#27ae60' : (fb.Status === 'Đang xử lý' ? '#3498db' : '#f39c12');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">${date}</td>
+                        <td><strong>${fb.Title}</strong></td>
+                        <td>${fb.Content}</td>
+                        <td style="color:${color}; font-weight:bold; text-align:center;">${fb.Status}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi load phản ánh:', error); }
+}
+
+// Bắt buộc gọi hàm này để nó tự chạy khi mở trang
+loadMyFeedbacks();
 
 // =========================================================================
 // 7. KHỞI CHẠY CÁC HÀM TẢI DỮ LIỆU KHI MỞ TRANG

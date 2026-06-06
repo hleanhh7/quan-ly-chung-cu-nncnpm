@@ -325,12 +325,13 @@ const createAnnouncement = async (req, res) => {
 };
 
 // =========================================================================
-// TINH NANG 3: TIEP NHAN PHAN ANH & KHIEU NAI (DANH CHO BQL)
+// TÍNH NĂNG: TIẾP NHẬN PHẢN ÁNH & KHIẾU NẠI (DÀNH CHO BQL)
 // =========================================================================
 const getAllFeedbacks = async (req, res) => {
     try {
-        const pool = await sql.connect();
-        const result = await pool.request().query(`
+        // Đã sửa lại thành new sql.Request() cho đồng bộ, chống sập Server
+        const request = new sql.Request();
+        const result = await request.query(`
             SELECT f.Feedback_ID, f.Title, f.Content, f.Status, f.Created_At, h.Room_Number 
             FROM Feedbacks f 
             JOIN Households h ON f.Household_ID = h.Household_ID 
@@ -338,6 +339,7 @@ const getAllFeedbacks = async (req, res) => {
         `);
         res.status(200).json(result.recordset);
     } catch (error) {
+        console.error("LỖI TẢI DANH SÁCH PHẢN ÁNH:", error);
         res.status(500).json({ message: 'Lỗi hệ thống khi lấy danh sách phản ánh', error: error.message });
     }
 };
@@ -346,16 +348,54 @@ const updateFeedbackStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { Status } = req.body; 
-        const pool = await sql.connect();
+        const request = new sql.Request();
 
-        await pool.request()
+        await request
             .input('Status', sql.NVarChar, Status)
             .input('Feedback_ID', sql.Int, id)
             .query('UPDATE Feedbacks SET Status = @Status WHERE Feedback_ID = @Feedback_ID');
             
         res.status(200).json({ message: 'Đã cập nhật tiến độ xử lý phản ánh thành công!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi không thể cập nhật trạng thái phản ánh', error: error.message });
+        console.error("LỖI CẬP NHẬT PHẢN ÁNH:", error);
+        res.status(500).json({ message: 'Lỗi không thể cập nhật trạng thái', error: error.message });
+    }
+};
+// =========================================================================
+// DUYỆT ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
+// =========================================================================
+const getPendingFacilityBookings = async (req, res) => {
+    try {
+        // Đã sửa thành new sql.Request() để không làm sập server
+        const request = new sql.Request();
+        const result = await request.query(`
+            SELECT fb.Booking_ID, h.Room_Number, fb.Facility_Name, fb.Booking_Date, fb.Time_Slot, fb.Status
+            FROM FacilityBookings fb
+            JOIN Households h ON fb.Household_ID = h.Household_ID
+            WHERE fb.Status = N'Chờ duyệt'
+            ORDER BY fb.Booking_Date ASC
+        `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const updateFacilityBookingStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Status } = req.body; 
+        // Đã sửa thành new sql.Request() để không làm sập server
+        const request = new sql.Request();
+
+        await request
+            .input('Status', sql.NVarChar, Status)
+            .input('Booking_ID', sql.Int, id)
+            .query('UPDATE FacilityBookings SET Status = @Status WHERE Booking_ID = @Booking_ID');
+
+            res.status(200).json({ message: `Đã ${Status.toLowerCase()} đặt lịch tiện ích thành công!` });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
 
@@ -392,5 +432,7 @@ module.exports = {
     createAnnouncement,
     getAllFeedbacks,
     updateFeedbackStatus,
+    getPendingFacilityBookings,
+    updateFacilityBookingStatus,
     getMovedOutHouseholds
 };

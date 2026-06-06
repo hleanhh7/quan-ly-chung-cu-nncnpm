@@ -156,59 +156,52 @@ window.xacNhanThuTien = async function(id) {
 // --- QUẢN LÝ HỘ KHẨU & LỊCH SỬ CHUYỂN ĐI ---
 async function fetchHouseholds() {
     try {
-        const response = await fetch(`${API_BASE}/households`, { 
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` } 
-        });
-        
+        const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
         const households = await response.json();
-        const tbodyActive = document.getElementById('householdTableBody');
         
-        // Chỉ cần kiểm tra bảng Active (vì bảng History đã bay sang trang khác)
-        if(!tbodyActive) return; 
+        const tbodyActive = document.getElementById('householdTableBody');
+        const tbodyHistory = document.getElementById('moveOutHistoryBody');
+        if(!tbodyActive || !tbodyHistory) return;
         
         tbodyActive.innerHTML = '';
+        tbodyHistory.innerHTML = '';
 
-        // BƯỚC BẢO VỆ: Chỉ vẽ bảng khi Server trả về mã OK (200)
-        if (response.ok) {
-            let hasActive = false;
+        let hasActive = false;
+        let hasHistory = false;
 
-            households.forEach(hh => {
-                const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
+        households.forEach(hh => {
+            const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
 
-                // SỬA CHỮ: Kiểm tra đúng chữ "Đang cư trú" hoặc "Đang ở" để bao quát hết dữ liệu
-                if (hh.Status === 'Đang cư trú' || hh.Status === 'Đang ở' || !hh.Status) {
-                    hasActive = true;
-                    // Sửa lại tên hàm thành updateHouseholdStatus cho khớp với code gốc
-                    const actionButton = `<button onclick="updateHouseholdStatus(${hh.Household_ID}, 'Đã chuyển đi')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
-                    
-                    tbodyActive.innerHTML += `
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status || 'Đang cư trú'}</td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
-                        </tr>
-                    `;
-                }
-            });
-
-            if (!hasActive) {
-                tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+            if (hh.Status === 'Đang ở') {
+                hasActive = true;
+                const actionButton = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                tbodyActive.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                    </tr>
+                `;
+            } else {
+                hasHistory = true;
+                tbodyHistory.innerHTML += `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
+                    </tr>
+                `;
             }
-            
-        } else {
-            // Xử lý báo lỗi nếu Backend sập
-            tbodyActive.innerHTML = `<tr><td colspan="6" style="text-align:center; color: red;">Lỗi Server: ${households.message}</td></tr>`;
-        }
+        });
 
-    } catch (error) { 
-        console.error('Lỗi kết nối:', error); 
-        const tbodyActive = document.getElementById('householdTableBody');
-        if(tbodyActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Mất kết nối đến máy chủ!</td></tr>';
-    }
+        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+
+    } catch (error) { console.error('Lỗi kết nối:', error); }
 }
 
 window.markAsMovedOut = async function(id) {
@@ -364,6 +357,198 @@ window.handleServiceRequest = async function(id, status) {
     } catch (error) { console.error('Lỗi API:', error); }
 };
 
+// =========================================================================
+// XỬ LÝ DUYỆT ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
+// =========================================================================
+async function loadFacilityBookings() {
+    try {
+        const response = await fetch(`${API_BASE}/facility-bookings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const tbody = document.getElementById('bangDuyetTienIch');
+        if (!tbody) return;
+
+        if (response.ok) {
+            const bookings = await response.json();
+            tbody.innerHTML = '';
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #7f8c8d;">Không có yêu cầu đặt lịch nào chờ duyệt.</td></tr>';
+                return;
+            }
+            
+            bookings.forEach(b => {
+                const dateOnly = new Date(b.Booking_Date).toLocaleDateString('vi-VN');
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">#${b.Booking_ID}</td>
+                        <td style="text-align:center;"><strong>${b.Room_Number}</strong></td>
+                        <td style="text-align:center;">${b.Facility_Name}</td>
+                        <td style="text-align:center; color: #2980b9; font-weight: bold;">${dateOnly}</td>
+                        <td style="text-align:center;">${b.Time_Slot}</td>
+                        <td style="color: #f39c12; font-weight: bold; text-align:center;">${b.Status}</td>
+                        <td style="text-align:center;">
+                            <button onclick="xuLyDatLich(${b.Booking_ID}, 'Đã duyệt')" style="background: #27ae60; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 5px;">Duyệt</button>
+                            <button onclick="xuLyDatLich(${b.Booking_ID}, 'Từ chối')" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Từ chối</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi load đặt lịch tiện ích:', error); }
+}
+
+async function xuLyDatLich(id, status) {
+    if (!confirm(`Bạn chắc chắn muốn ${status.toUpperCase()} yêu cầu đặt lịch này?`)) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/facility-booking/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ Status: status })
+        });
+        
+        if (response.ok) {
+            alert(`🎉 Đã ${status.toLowerCase()} thành công!`);
+            loadFacilityBookings(); // Tải lại bảng ngay lập tức
+        } else {
+            const err = await response.json();
+            alert('❌ Lỗi: ' + err.message);
+        }
+    } catch (error) { console.error('Lỗi duyệt đặt lịch:', error); }
+}
+
+// Bắt buộc gọi hàm này để nó tự động chạy khi mở trang
+loadFacilityBookings();
+
+// =========================================================================
+// VŨ KHÍ BÍ MẬT: VẼ BIỂU ĐỒ THỐNG KÊ TỰ ĐỘNG BẰNG CHART.JS
+// =========================================================================
+async function drawCharts() {
+    try {
+        // 1. VẼ BIỂU ĐỒ CỘT: DOANH THU (Lọc các hóa đơn "Đã thanh toán")
+        const resInvoices = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (resInvoices.ok) {
+            const invoices = await resInvoices.json();
+            
+            const revenueByMonth = {};
+            invoices.forEach(inv => {
+                if (inv.Payment_Status === 'Đã thanh toán') {
+                    const label = `Tháng ${inv.Billing_Month}/${inv.Billing_Year}`;
+                    revenueByMonth[label] = (revenueByMonth[label] || 0) + inv.Total_Amount;
+                }
+            });
+
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(revenueByMonth).length > 0 ? Object.keys(revenueByMonth) : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Doanh thu thực tế (VNĐ)',
+                        data: Object.keys(revenueByMonth).length > 0 ? Object.values(revenueByMonth) : [0],
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { title: { display: true, text: '💰 DOANH THU ĐÃ THU ĐƯỢC THEO THÁNG', font: { size: 16 } } } 
+                }
+            });
+        }
+
+        // 2. VẼ BIỂU ĐỒ TRÒN: TỶ LỆ DỊCH VỤ CƯ DÂN DÙNG NHIỀU NHẤT
+        const resServices = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (resServices.ok) {
+            const services = await resServices.json();
+            
+            const serviceCount = {};
+            services.forEach(svc => {
+                serviceCount[svc.Service_Name] = (serviceCount[svc.Service_Name] || 0) + svc.Quantity;
+            });
+
+            new Chart(document.getElementById('serviceChart'), {
+                type: 'pie', // Biểu đồ bánh tròn
+                data: {
+                    labels: Object.keys(serviceCount).length > 0 ? Object.keys(serviceCount) : ['Chưa có dịch vụ'],
+                    datasets: [{
+                        data: Object.keys(serviceCount).length > 0 ? Object.values(serviceCount) : [1],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#34495e', '#e67e22']
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { title: { display: true, text: '🚀 TỶ LỆ CÁC DỊCH VỤ ĐANG ĐƯỢC SỬ DỤNG', font: { size: 16 } } } 
+                }
+            });
+        }
+    } catch (error) { console.error('Lỗi vẽ biểu đồ:', error); }
+}
+
+// Chạy hàm vẽ biểu đồ ngay khi mở trang
+drawCharts();
+
+
+// =========================================================================
+// XỬ LÝ MÁY TÍNH TIỀN (THU TIỀN MẶT BÊN ADMIN)
+// =========================================================================
+let currentInvoiceId = null;
+let currentInvoiceTotal = 0;
+
+// Hàm này được gọi khi Admin bấm nút "Thu Tiền" trên bảng hóa đơn
+function moModalThuTien(id, total) {
+    currentInvoiceId = id;
+    currentInvoiceTotal = total;
+    document.getElementById('mt_maHD').innerText = '#' + id;
+    document.getElementById('mt_tongTien').innerText = total.toLocaleString('vi-VN');
+    document.getElementById('mt_khachDua').value = '';
+    document.getElementById('mt_tienThua').innerText = '0';
+    document.getElementById('mt_tienThua').style.color = '#27ae60';
+    document.getElementById('modalThuTien').style.display = 'block';
+}
+
+function dongModalThuTien() {
+    document.getElementById('modalThuTien').style.display = 'none';
+}
+
+function tinhTienThua() {
+    const khachDua = parseInt(document.getElementById('mt_khachDua').value) || 0;
+    const tienThua = khachDua - currentInvoiceTotal;
+    const hienThi = document.getElementById('mt_tienThua');
+    
+    if (tienThua < 0) {
+        hienThi.innerText = 'Khách đưa chưa đủ!';
+        hienThi.style.color = '#e74c3c'; // Màu đỏ cảnh báo
+    } else {
+        hienThi.innerText = tienThua.toLocaleString('vi-VN');
+        hienThi.style.color = '#27ae60'; // Màu xanh an toàn
+    }
+}
+
+async function xacNhanThuTien() {
+    const khachDua = parseInt(document.getElementById('mt_khachDua').value) || 0;
+    if (khachDua < currentInvoiceTotal) {
+        alert('❌ Không thể xác nhận: Khách đưa chưa đủ tiền!');
+        return;
+    }
+    
+    // Gọi API payInvoice cũ đã có sẵn ở Backend Admin
+    try {
+        const response = await fetch(`${API_BASE}/invoice/${currentInvoiceId}/pay`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            alert('🎉 Thu tiền và xuất biên lai thành công!');
+            dongModalThuTien();
+            location.reload(); // Tải lại trang để cập nhật bảng và biểu đồ Doanh thu
+        }
+    } catch (error) { console.error('Lỗi thu tiền:', error); }
+}
+
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
 // ==================================================
@@ -374,34 +559,72 @@ fetchAllRegisteredServices();
 fetchServiceRequests();
 
 // =========================================================================
-// CHỨC NĂNG BÁO CHUYỂN ĐI (Dành cho Ban Quản Lý)
+// XỬ LÝ PHẢN ÁNH / GÓP Ý (BÊN ADMIN)
 // =========================================================================
-window.updateHouseholdStatus = async function(householdId, newStatus) {
-    if (!confirm('Xác nhận: Báo hộ này đã chuyển đi?')) return;
-
+async function loadFeedbacks() {
     try {
-        // Đảm bảo biến token đã được lấy đúng tên
-        const currentToken = localStorage.getItem('bluemoon_token') || localStorage.getItem('token');
-
-        const response = await fetch(`http://localhost:5000/api/manager/household/${householdId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentToken}`
-            },
-            body: JSON.stringify({ Status: newStatus })
+        const response = await fetch(`${API_BASE}/feedbacks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        const result = await response.json();
+        const tbody = document.getElementById('bangQuanLyPhanAnh');
+        if (!tbody) return;
 
         if (response.ok) {
-            alert(result.message);
-            fetchHouseholds(); // Gọi lại hàm tải bảng để dòng chữ "Đang cư trú" biến mất
-        } else {
-            alert('Lỗi từ Server: ' + result.message);
+            const feedbacks = await response.json();
+            tbody.innerHTML = '';
+            
+            if (feedbacks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: #7f8c8d;">Chưa có phản ánh nào từ cư dân.</td></tr>';
+                return;
+            }
+            
+            feedbacks.forEach(fb => {
+                const dateOnly = new Date(fb.Created_At).toLocaleDateString('vi-VN');
+                let color = fb.Status === 'Đã xử lý' ? '#27ae60' : (fb.Status === 'Đang xử lý' ? '#3498db' : '#f39c12');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;">${dateOnly}</td>
+                        <td style="text-align:center; font-weight:bold; color:#2980b9;">${fb.Room_Number}</td>
+                        <td><strong>${fb.Title}</strong></td>
+                        <td style="text-align:left; max-width: 300px;">${fb.Content}</td>
+                        <td style="color:${color}; font-weight:bold; text-align:center;">${fb.Status}</td>
+                        <td style="text-align:center;">
+                            <select onchange="capNhatTrangThaiPhanAnh(${fb.Feedback_ID}, this.value)" style="padding: 5px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer;">
+                                <option value="" disabled selected>Đổi trạng thái...</option>
+                                <option value="Đang xử lý">Đang xử lý</option>
+                                <option value="Đã xử lý">Đã xử lý</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
         }
-    } catch (error) {
-        console.error('Lỗi khi gọi API:', error);
-        alert('Mất kết nối đến máy chủ!');
+    } catch (error) { console.error('Lỗi load phản ánh:', error); }
+}
+
+async function capNhatTrangThaiPhanAnh(id, newStatus) {
+    if (!confirm(`Chuyển trạng thái phản ánh này thành "${newStatus}"?`)) {
+        loadFeedbacks(); // Hủy thì reset lại ô select
+        return; 
     }
-};
+    
+    try {
+        const response = await fetch(`${API_BASE}/feedback/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ Status: newStatus })
+        });
+        
+        if (response.ok) {
+            alert('🎉 Đã cập nhật tiến độ xử lý!');
+            loadFeedbacks(); // Tải lại bảng ngay lập tức
+        } else {
+            const err = await response.json();
+            alert('❌ Lỗi: ' + err.message);
+        }
+    } catch (error) { console.error('Lỗi cập nhật phản ánh:', error); }
+}
+
+// Bắt buộc gọi hàm này để bảng tự load khi Admin mở trang
+loadFeedbacks();

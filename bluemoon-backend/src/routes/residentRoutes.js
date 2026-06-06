@@ -38,5 +38,11 @@ router.post('/feedbacks', residentController.sendFeedback);
 // Thêm dòng này vào residentRoutes.js
 router.post('/add-resident', residentController.addResident);
 
+// Đường dẫn: Phản ánh / Góp ý
+router.post('/feedbacks', residentController.sendFeedback);
+router.get('/feedbacks', residentController.getMyFeedbacks);
+
+router.put('/invoice/:id/pay', residentController.payMyInvoice);
+
 // LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

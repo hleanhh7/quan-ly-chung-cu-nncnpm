@@ -103,24 +103,6 @@ const getAnnouncements = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
-// API: Gửi phản ánh
-const sendFeedback = async (req, res) => {
-    try {
-        const householdId = req.user.householdId; 
-        const { Title, Content } = req.body;
-        if (!householdId) return res.status(403).json({ message: 'Tài khoản chưa liên kết căn hộ!' });
-        
-        const pool = await sql.connect();
-        await pool.request()
-            .input('Household_ID', sql.Int, householdId)
-            .input('Title', sql.NVarChar, Title)
-            .input('Content', sql.NVarChar, Content)
-            .query('INSERT INTO Feedbacks (Household_ID, Title, Content) VALUES (@Household_ID, @Title, @Content)');
-            
-        res.status(201).json({ message: 'Gửi phản ánh thành công! Ban quản lý đã tiếp nhận yêu cầu.' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
-};
-
 // API: Thêm nhân khẩu (VÁ LỖI BẢO MẬT)
 const addResident = async (req, res) => {
     try {
@@ -149,10 +131,17 @@ const addResident = async (req, res) => {
 // TÍNH NĂNG 5: ĐẶT LỊCH TIỆN ÍCH (BBQ, TENNIS, GYM)
 // =========================================================================
 
-// API: Gửi yêu cầu đặt lịch
+// API: Gửi yêu cầu đặt lịch (Phiên bản nâng cấp chống lỗi)
 const bookFacility = async (req, res) => {
     try {
-        const householdId = req.user.householdId;
+        // Cố gắng lấy ID từ nhiều kiểu viết khác nhau của Token
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+
+        if (!householdId) {
+            console.log("❌ Lỗi Token: Không tìm thấy Household_ID", req.user);
+            return res.status(400).json({ message: 'Lỗi xác thực: Không nhận diện được Hộ khẩu của bạn.' });
+        }
+
         const { facility_name, booking_date, time_slot } = req.body;
         const request = new sql.Request();
 
@@ -166,10 +155,12 @@ const bookFacility = async (req, res) => {
                 VALUES (@Household_ID, @Facility_Name, @Booking_Date, @Time_Slot)
             `);
 
-        res.status(201).json({ message: 'Đặt lịch thành công! Vui lòng chờ BQL xác nhận.' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+        res.status(201).json({ message: '🎉 Đặt lịch thành công! Vui lòng chờ BQL xác nhận.' });
+    } catch (error) { 
+        console.error("❌ LỖI ĐẶT LỊCH TẠI BACKEND:", error); // In lỗi đỏ ra Terminal
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
-
 // API: Lấy lịch sử đặt chỗ của nhà mình
 const getMyBookings = async (req, res) => {
     try {
@@ -185,6 +176,77 @@ const getMyBookings = async (req, res) => {
 };
 
 
+// =========================================================================
+// TÍNH NĂNG: GỬI PHẢN ÁNH / GÓP Ý
+// =========================================================================
+
+// API: Gửi phản ánh mới
+const sendFeedback = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const { title, content } = req.body;
+        
+        // Dùng new sql.Request() cho đồng bộ với các hàm trên
+        const request = new sql.Request();
+
+        await request
+            .input('Household_ID', sql.Int, householdId)
+            .input('Title', sql.NVarChar, title)
+            .input('Content', sql.NVarChar, content)
+            .query(`
+                INSERT INTO Feedbacks (Household_ID, Title, Content) 
+                VALUES (@Household_ID, @Title, @Content)
+            `);
+
+        res.status(201).json({ message: 'Gửi phản ánh thành công! BQL sẽ sớm tiếp nhận.' });
+    } catch (error) {
+        console.error("LỖI GỬI PHẢN ÁNH:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Xem lịch sử phản ánh của nhà mình
+const getMyFeedbacks = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const request = new sql.Request();
+        
+        const result = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                SELECT * FROM Feedbacks 
+                WHERE Household_ID = @Household_ID 
+                ORDER BY Created_At DESC
+            `);
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// API: Cư dân tự thanh toán Online (Giả lập)
+const payMyInvoice = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const { id } = req.params;
+        const pool = await sql.connect();
+
+        // Cập nhật trạng thái hóa đơn
+        await pool.request()
+            .input('Invoice_ID', sql.Int, id)
+            .input('Household_ID', sql.Int, householdId)
+            .query(`
+                UPDATE Invoices 
+                SET Payment_Status = N'Đã thanh toán', Payment_Date = GETDATE() 
+                WHERE Invoice_ID = @Invoice_ID AND Household_ID = @Household_ID
+            `);
+
+        res.status(200).json({ message: 'Thanh toán Online thành công qua cổng thanh toán!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 
@@ -192,8 +254,10 @@ module.exports = {
     registerService, 
     getMyRegisteredServices,
     getAnnouncements,
-    sendFeedback,
     addResident,
     bookFacility,
-    getMyBookings
+    getMyBookings,
+    sendFeedback,
+    getMyFeedbacks,
+    payMyInvoice
 };
