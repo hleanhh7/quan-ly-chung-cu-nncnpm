@@ -178,7 +178,7 @@ const getAllRegisteredServices = async (req, res) => {
         const request = new sql.Request();
         const result = await request.query(`
             SELECT sr.Registration_ID, h.Room_Number, s.Service_Name, sr.Quantity, sr.Start_Date, 
-                   (sr.Quantity * COALESCE(s.Price, s.Unit_Price, s.Cost, 0)) AS Estimated_Cost
+                   (sr.Quantity * s.Unit_Price) AS Estimated_Cost
             FROM ServiceRegistrations sr
             JOIN Services s ON sr.Service_ID = s.Service_ID
             JOIN Households h ON sr.Household_ID = h.Household_ID
@@ -186,7 +186,10 @@ const getAllRegisteredServices = async (req, res) => {
             ORDER BY h.Room_Number ASC, sr.Start_Date DESC
         `);
         res.status(200).json(result.recordset);
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+    } catch (error) { 
+        console.error("Lỗi lấy danh sách dịch vụ:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
 
 // API: Lấy danh sách đăng ký dịch vụ đang chờ duyệt
@@ -235,26 +238,27 @@ const updateServiceRequestStatus = async (req, res) => {
         const { Status } = req.body; 
         const request = new sql.Request();
 
+        // 1. Cập nhật trạng thái
         await request
             .input('Status', sql.NVarChar, Status)
             .input('Request_ID', sql.Int, id)
             .query('UPDATE ServiceRegistrations SET Status = @Status WHERE Registration_ID = @Request_ID');
 
-        // Tự động tính tiền bằng COALESCE để chống lỗi NaN/NULL
+        // 2. Tự động sinh hóa đơn với đúng cột Unit_Price
         if (Status === 'Đã duyệt') {
             const infoReq = new sql.Request();
             infoReq.input('ReqID', sql.Int, id);
             
             const info = await infoReq.query(`
-                SELECT sr.Household_ID, sr.Quantity, COALESCE(s.Price, s.Unit_Price, s.Cost, 0) as DonGia
+                SELECT sr.Household_ID, sr.Quantity, s.Unit_Price as DonGia
                 FROM ServiceRegistrations sr
                 JOIN Services s ON sr.Service_ID = s.Service_ID
-                WHERE sr.Request_ID = @ReqID
+                WHERE sr.Registration_ID = @ReqID
             `);
 
             if (info.recordset.length > 0) {
                 const { Household_ID, Quantity, DonGia } = info.recordset[0];
-                const Total_Amount = Quantity * DonGia; 
+                const Total_Amount = Quantity * (DonGia || 0); 
                 
                 const currentMonth = new Date().getMonth() + 1;
                 const currentYear = new Date().getFullYear();
@@ -358,27 +362,29 @@ const getAllServiceTypes = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
+// Thêm một loại phí mới
 const createServiceType = async (req, res) => {
     try {
-        const { Service_Name, Price } = req.body;
+        const { Service_Name, Price } = req.body; // Frontend gửi lên là Price
         const request = new sql.Request();
         await request
             .input('Service_Name', sql.NVarChar, Service_Name)
-            .input('Price', sql.Float, Price)
-            .query('INSERT INTO Services (Service_Name, Price) VALUES (@Service_Name, @Price)');
+            .input('Unit_Price', sql.Float, Price) // Map đúng vào cột Unit_Price
+            .query('INSERT INTO Services (Service_Name, Unit_Price) VALUES (@Service_Name, @Unit_Price)');
         res.status(201).json({ message: '🎉 Đã thêm loại phí/dịch vụ mới thành công!' });
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
+// Đổi giá tiền của một loại phí
 const updateServicePrice = async (req, res) => {
     try {
         const { id } = req.params;
         const { Price } = req.body;
         const request = new sql.Request();
         await request
-            .input('Price', sql.Float, Price)
+            .input('Unit_Price', sql.Float, Price)
             .input('Service_ID', sql.Int, id)
-            .query('UPDATE Services SET Price = @Price WHERE Service_ID = @Service_ID');
+            .query('UPDATE Services SET Unit_Price = @Unit_Price WHERE Service_ID = @Service_ID');
         res.status(200).json({ message: '💰 Đã cập nhật giá mới thành công!' });
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
