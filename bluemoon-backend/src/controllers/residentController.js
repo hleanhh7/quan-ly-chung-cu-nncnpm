@@ -257,6 +257,22 @@ const payMyInvoice = async (req, res) => {
     }
 };
 
+// API: Xem danh sách thành viên trong gia đình
+const getFamilyMembers = async (req, res) => {
+    try {
+        const householdId = req.user.householdId || req.user.Household_ID || req.user.id;
+        const request = new sql.Request();
+        
+        const result = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query('SELECT Full_Name, Identity_Card, Date_Of_Birth, Relation_With_Owner FROM Residents WHERE Household_ID = @Household_ID');
+            
+        res.status(200).json(result.recordset);
+    } catch (error) { 
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
+};
+
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 
@@ -269,5 +285,6 @@ module.exports = {
     getMyBookings,
     sendFeedback,
     getMyFeedbacks,
-    payMyInvoice
+    payMyInvoice,
+    getFamilyMembers
 };

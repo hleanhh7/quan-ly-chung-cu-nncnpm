@@ -402,6 +402,18 @@ const deleteServiceType = async (req, res) => {
     }
 };
 
+// API: Xem danh sách nhân khẩu của một hộ cụ thể
+const getResidentsByHousehold = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const request = new sql.Request();
+        const result = await request
+            .input('Household_ID', sql.Int, id)
+            .query('SELECT Full_Name, Identity_Card, Date_Of_Birth, Relation_With_Owner FROM Residents WHERE Household_ID = @Household_ID');
+        res.status(200).json(result.recordset);
+    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+};
+
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 
@@ -425,5 +437,6 @@ module.exports = {
     getAllServiceTypes,
     createServiceType,
     updateServicePrice,
-    deleteServiceType
+    deleteServiceType,
+    getResidentsByHousehold
 };

@@ -14,6 +14,7 @@ router.get('/households', managerController.getAllHouseholds);
 router.put('/household/:id/status', managerController.updateHouseholdStatus);
 router.post('/resident', managerController.addResident);
 router.post('/account', managerController.createResidentAccount);
+router.get('/household/:id/residents', managerController.getResidentsByHousehold);
 
 // CÁC ĐƯỜNG DẪN DỊCH VỤ & HÓA ĐƠN
 router.get('/registered-services', managerController.getAllRegisteredServices);

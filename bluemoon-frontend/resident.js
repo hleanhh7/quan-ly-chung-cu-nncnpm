@@ -105,6 +105,91 @@ async function xacNhanDaChuyenKhoan() {
         }
     } catch (error) { console.error('Lỗi thanh toán:', error); }
 }
+
+// =========================================================================
+// XỬ LÝ: THÊM THÀNH VIÊN GIA ĐÌNH (CHỐNG TRÔI TRANG)
+// =========================================================================
+const formAddFamilyMember = document.getElementById('formAddFamilyMember');
+if (formAddFamilyMember) {
+    formAddFamilyMember.addEventListener('submit', async function(e) {
+        // Lệnh tối quan trọng: Khóa chặt form, cấm trình duyệt tự load lại trang
+        e.preventDefault(); 
+
+        // Thu thập dữ liệu từ các ô Input khớp với HTML
+        const data = {
+            Full_Name: document.getElementById('fmName').value,
+            Identity_Card: document.getElementById('fmIdentity').value,
+            Date_Of_Birth: document.getElementById('fmDob').value,
+            Relation_With_Owner: document.getElementById('fmRelation').value
+        };
+
+        try {
+            // Đẩy dữ liệu xuống Backend (API dành riêng cho Cư dân)
+            const response = await fetch(`${API_BASE}/add-resident`, { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('🎉 ' + result.message);
+                formAddFamilyMember.reset(); // Xóa trắng form cho đẹp
+                
+                // 👉 ĐÂY RỒI! BƯỚC 3 NẰM Ở ĐÂY:
+                // Gọi hàm làm mới bảng ngay sau khi server báo lưu thành công
+                fetchFamilyMembers(); 
+                
+            } else {
+                alert('❌ Lỗi: ' + result.message);
+            }
+        } catch (error) { 
+            console.error('Lỗi khi thêm thành viên:', error); 
+            alert('Lỗi kết nối tới máy chủ!');
+        }
+    });
+}
+
+// =========================================================================
+// HÀM TẢI VÀ HIỂN THỊ DANH SÁCH THÀNH VIÊN GIA ĐÌNH
+// =========================================================================
+async function fetchFamilyMembers() {
+    try {
+        const response = await fetch(`${API_BASE}/family-members`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const tbody = document.getElementById('familyMembersTableBody');
+        if (!tbody) return; // Tránh lỗi null nếu lỡ HTML thiếu thẻ này
+        
+        if (response.ok) {
+            const members = await response.json();
+            tbody.innerHTML = '';
+            
+            // Nếu chưa có ai
+            if (members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Gia đình bạn chưa có dữ liệu nhân khẩu nào.</td></tr>';
+                return;
+            }
+            
+            // Đổ dữ liệu ra bảng
+            members.forEach(m => {
+                const dob = new Date(m.Date_Of_Birth).toLocaleDateString('vi-VN');
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight: bold; color: #2c3e50;">${m.Full_Name}</td>
+                        <td style="text-align: center;">${m.Identity_Card}</td>
+                        <td style="text-align: center;">${dob}</td>
+                        <td style="text-align: center; color: #e67e22; font-weight: bold;">${m.Relation_With_Owner}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (error) { console.error('Lỗi tải danh sách nhân khẩu:', error); }
+}
+
+// Lệnh khởi động: Gọi 1 lần ở cuối file để bảng tự load khi cư dân vừa mở Tab
+fetchFamilyMembers();
 // =========================================================================
 // 3. XỬ LÝ GỬI FORM KHAI BÁO HÀNH CHÍNH
 // =========================================================================

@@ -226,29 +226,60 @@ window.xacNhanThuTien = async function() {
     } catch (error) { console.error('Lỗi thu tiền:', error); }
 }
 
+// --- QUẢN LÝ HỘ KHẨU & LỊCH SỬ CHUYỂN ĐI ---
 async function fetchHouseholds() {
     try {
         const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
         const households = await response.json();
+        
         const tbodyActive = document.getElementById('householdTableBody');
         const tbodyHistory = document.getElementById('moveOutHistoryBody');
         if(!tbodyActive || !tbodyHistory) return;
-        tbodyActive.innerHTML = ''; tbodyHistory.innerHTML = '';
-        let hasActive = false, hasHistory = false;
+        
+        tbodyActive.innerHTML = '';
+        tbodyHistory.innerHTML = '';
+
+        let hasActive = false;
+        let hasHistory = false;
 
         households.forEach(hh => {
             const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
+
             if (hh.Status === 'Đang ở') {
                 hasActive = true;
-                const btn = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
-                tbodyActive.innerHTML += `<tr><td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td><td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${btn}</td></tr>`;
+                
+                // Tách 2 nút thành 2 biến riêng biệt
+                const btnXem = `<button onclick="xemNhanKhau(${hh.Household_ID}, '${hh.Room_Number}')" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold;">👁️ Xem</button>`;
+                const btnBaoChuyen = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
+                
+                // Đổ dữ liệu ra 7 cột (Có cột Nút Xem riêng)
+                tbodyActive.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${hh.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${moveInDate}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #2ecc71;">${hh.Status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${btnXem}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${btnBaoChuyen}</td>
+                    </tr>
+                `;
             } else {
                 hasHistory = true;
-                tbodyHistory.innerHTML += `<tr><td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td><td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td><td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td><td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td></tr>`;
+                tbodyHistory.innerHTML += `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
+                    </tr>
+                `;
             }
         });
-        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
+
+        if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="7" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
         if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+
     } catch (error) { console.error('Lỗi kết nối:', error); }
 }
 
@@ -519,6 +550,41 @@ async function loadKPIs() {
         if(elPending) elPending.innerText = pendingCount;
     } catch (error) { console.error("Lỗi tải KPI:", error); }
 }
+
+window.xemNhanKhau = async function(id, room) {
+    document.getElementById('mk_roomNumber').innerText = 'Phòng ' + room;
+    const tbody = document.getElementById('mk_tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Đang tải dữ liệu...</td></tr>';
+    document.getElementById('modalNhanKhau').style.display = 'block'; 
+
+    try {
+        const response = await fetch(`${API_BASE}/household/${id}/residents`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (response.ok) {
+            const members = await response.json();
+            tbody.innerHTML = '';
+            
+            if (members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#e74c3c;">Phòng này chưa khai báo nhân khẩu nào.</td></tr>';
+            } else {
+                members.forEach(m => {
+                    const dob = new Date(m.Date_Of_Birth).toLocaleDateString('vi-VN');
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight: bold; padding: 10px; border: 1px solid #eee;">${m.Full_Name}</td>
+                            <td style="text-align: center; padding: 10px; border: 1px solid #eee;">${m.Identity_Card}</td>
+                            <td style="text-align: center; padding: 10px; border: 1px solid #eee;">${dob}</td>
+                            <td style="text-align: center; color: #e67e22; font-weight: bold; padding: 10px; border: 1px solid #eee;">${m.Relation_With_Owner}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+    } catch (error) { console.error('Lỗi tải nhân khẩu:', error); }
+};
+
+window.dongModalNhanKhau = function() {
+    document.getElementById('modalNhanKhau').style.display = 'none';
+};
 
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG
