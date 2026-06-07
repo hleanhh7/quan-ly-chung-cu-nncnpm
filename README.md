@@ -155,3 +155,6 @@ lưu ý, hiện nhớ check frontend để biết những chức năng hiện đ
 - thêm chức năng tinh chỉnh và quản lý các loại phí ( đã fix )
 - sửa lại phần khai báo tạm trú tạm vắng: cần CCCD chứ ID nhân khẩu là gì?? ( đã fix , bây giờ 1 phòng chỉ đc cấp 1 tk do chủ hộ nắm và chủ hộ có chức năg thêm thông tin các nhân khẩu trong nhà để phục vụ khai báo hành chính )
 - khi cư dân đăng kí dịch vụ, bên bql không nhận được danh sách để duyệt và bên cư dân, sau khi duyệt thì nên tự động tạo hóa đơn luôn chứ không cần phải có chức năng phát hành hóa đơn ( đã fix , ngoài ra vẫn giữ nguyên chức năng tạo hóa đơn thủ công cho trường hợp phí phát sinh )
+- Ngoài ra đã thêm chức năng giới hạn lại tổng số phòng của chung cư , code đang để giới hạn 379 phòng và id hộ khẩu sẽ chính là số phòng , nhập id hộ khẩu quá 379 -> fail
+- Do 1 phòng chỉ đc 1 tk nên đã có thêm chức năng chủ hộ bấm xem chi tiết thông tin nhân khẩu và cả admin cũng thế tuy nhiên phía admin sẽ ko xem đc số cccd/cmnd
+- 
