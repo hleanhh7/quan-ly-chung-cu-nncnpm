@@ -134,12 +134,22 @@ if (formAddServiceType) {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(data)
             });
+            
+            // Lấy kết quả từ Backend ra trước
+            const result = await response.json(); 
+            
             if (response.ok) {
-                alert((await response.json()).message);
+                alert('🎉 ' + result.message);
                 formAddServiceType.reset();
                 loadServiceTypes();
+            } else {
+                // VŨ KHÍ BÍ MẬT: Phải có dòng này để nó hiện lỗi đỏ chót ra màn hình
+                alert('❌ Lỗi từ hệ thống: ' + result.message); 
             }
-        } catch (error) { console.error('Lỗi thêm phí:', error); }
+        } catch (error) { 
+            console.error('Lỗi thêm phí:', error); 
+            alert('❌ Lỗi kết nối đến máy chủ!');
+        }
     });
 }
 
@@ -241,18 +251,20 @@ async function fetchHouseholds() {
 
         let hasActive = false;
         let hasHistory = false;
+        // 1. TẠO BIẾN ĐẾM SỐ PHÒNG
+        let activeRoomCount = 0;
 
         households.forEach(hh => {
             const moveInDate = hh.Move_In_Date ? new Date(hh.Move_In_Date).toLocaleDateString('vi-VN') : '';
 
             if (hh.Status === 'Đang ở') {
                 hasActive = true;
+                activeRoomCount++;
                 
-                // Tách 2 nút thành 2 biến riêng biệt
+                // 2 nút của bảng Hộ khẩu đang ở
                 const btnXem = `<button onclick="xemNhanKhau(${hh.Household_ID}, '${hh.Room_Number}')" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold;">👁️ Xem</button>`;
                 const btnBaoChuyen = `<button onclick="markAsMovedOut(${hh.Household_ID})" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Báo chuyển đi</button>`;
                 
-                // Đổ dữ liệu ra 7 cột (Có cột Nút Xem riêng)
                 tbodyActive.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad;">${hh.Household_ID}</td>
@@ -266,19 +278,30 @@ async function fetchHouseholds() {
                 `;
             } else {
                 hasHistory = true;
+                
+                // Nút của bảng Lịch sử
+                const btnXemLichSu = `<button onclick="xemNhanKhau(${hh.Household_ID}, '${hh.Room_Number}')" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold;">👁️ Xem</button>`;
+
                 tbodyHistory.innerHTML += `
                     <tr>
                         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${hh.Room_Number}</td>
                         <td style="padding:10px; border:1px solid #ddd;">${hh.Owner_Name}</td>
                         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${moveInDate}</td>
                         <td style="padding:10px; border:1px solid #ddd; text-align:center; color:#e74c3c; font-weight:bold;">Đã chuyển đi</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;">${btnXemLichSu}</td>
                     </tr>
                 `;
             }
         });
 
         if (!hasActive) tbodyActive.innerHTML = '<tr><td colspan="7" style="text-align:center;">Chưa có hộ khẩu nào đang ở.</td></tr>';
-        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+        if (!hasHistory) tbodyHistory.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hộ nào chuyển đi.</td></tr>';
+
+        // 3. IN KẾT QUẢ ĐẾM ĐƯỢC LÊN GIAO DIỆN HEADER
+        const headerCounter = document.getElementById('headerRoomCount');
+        if (headerCounter) {
+            headerCounter.innerText = activeRoomCount;
+        }
 
     } catch (error) { console.error('Lỗi kết nối:', error); }
 }
@@ -554,7 +577,7 @@ async function loadKPIs() {
 window.xemNhanKhau = async function(id, room) {
     document.getElementById('mk_roomNumber').innerText = 'Phòng ' + room;
     const tbody = document.getElementById('mk_tbody');
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Đang tải dữ liệu...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Đang tải dữ liệu...</td></tr>';
     document.getElementById('modalNhanKhau').style.display = 'block'; 
 
     try {
@@ -571,7 +594,6 @@ window.xemNhanKhau = async function(id, room) {
                     tbody.innerHTML += `
                         <tr>
                             <td style="font-weight: bold; padding: 10px; border: 1px solid #eee;">${m.Full_Name}</td>
-                            <td style="text-align: center; padding: 10px; border: 1px solid #eee;">${m.Identity_Card}</td>
                             <td style="text-align: center; padding: 10px; border: 1px solid #eee;">${dob}</td>
                             <td style="text-align: center; color: #e67e22; font-weight: bold; padding: 10px; border: 1px solid #eee;">${m.Relation_With_Owner}</td>
                         </tr>

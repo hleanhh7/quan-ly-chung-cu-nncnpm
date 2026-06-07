@@ -1,30 +1,58 @@
 const { sql } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
-// API: Thêm hộ khẩu (Căn hộ) mới
+// Thiết lập số phòng tối đa của chung cư Bluemoon theo đúng thực tế
+const MAX_ROOMS = 379; 
+
+// API: Thêm hộ khẩu (Căn hộ) mới - Đã tích hợp Giới hạn và Kiểm tra mã phòng hợp lệ
 const createHousehold = async (req, res) => {
     try {
         const { Room_Number, Owner_Name, Move_In_Date } = req.body;
         const request = new sql.Request();
-        
-        const checkRoom = await request
-            .input('Room_Number', sql.VarChar, Room_Number)
-            .query('SELECT * FROM Households WHERE Room_Number = @Room_Number');
 
-        if (checkRoom.recordset.length > 0) {
-            return res.status(400).json({ message: 'Số phòng này đã được đăng ký!' });
+        // 1. KIỂM TRA MÃ PHÒNG (Không cho phép nhập mã phòng lớn hơn 379)
+        // Dùng Regex để tách lấy phần số. (Ví dụ: "B202" -> 202, "789" -> 789)
+        const roomNumValue = parseInt(Room_Number.replace(/\D/g, '')); 
+        
+        if (!roomNumValue || roomNumValue > MAX_ROOMS) {
+            return res.status(400).json({ 
+                message: `❌ Mã phòng không hợp lệ! Các căn hộ chỉ được đánh số tối đa đến ${MAX_ROOMS}.` 
+            });
         }
 
+        // 2. KIỂM TRA GIỚI HẠN TỔNG SỐ PHÒNG ĐANG CÓ NGƯỜI Ở
+        const countResult = await request.query(`SELECT COUNT(*) as TotalActive FROM Households WHERE Status = N'Đang ở'`);
+        const currentActiveRooms = countResult.recordset[0].TotalActive;
+        
+        if (currentActiveRooms >= MAX_ROOMS) {
+            return res.status(400).json({ 
+                message: `❌ Không thể thêm mới! Chung cư Bluemoon đã đạt giới hạn đầy kín ${MAX_ROOMS} hộ.` 
+            });
+        }
+
+        // 3. KIỂM TRA PHÒNG NÀY ĐÃ CÓ NGƯỜI Ở CHƯA
+        const checkRoom = await request
+            .input('Room_Number', sql.VarChar, Room_Number)
+            .query(`SELECT * FROM Households WHERE Room_Number = @Room_Number AND Status = N'Đang ở'`);
+
+        if (checkRoom.recordset.length > 0) {
+            return res.status(400).json({ message: '❌ Căn hộ này hiện đang có hộ khác sinh sống!' });
+        }
+
+        // 4. TIẾN HÀNH LƯU VÀO DATABASE
         await request
             .input('Owner_Name', sql.NVarChar, Owner_Name)
             .input('Move_In_Date', sql.Date, Move_In_Date)
             .query(`
-                INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date) 
-                VALUES (@Room_Number, @Owner_Name, @Move_In_Date)
+                INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date, Status) 
+                VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang ở')
             `);
 
-        res.status(201).json({ message: 'Thêm hộ khẩu mới thành công!' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+        res.status(201).json({ message: '🎉 Thêm hộ khẩu mới thành công!' });
+    } catch (error) { 
+        console.error("Lỗi tạo hộ khẩu:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
 
 // API: Thêm nhân khẩu vào một hộ
@@ -362,17 +390,27 @@ const getAllServiceTypes = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
-// Thêm một loại phí mới
+// API: Thêm loại phí / dịch vụ mới
 const createServiceType = async (req, res) => {
     try {
-        const { Service_Name, Price } = req.body; // Frontend gửi lên là Price
+        const { Service_Name, Price } = req.body;
         const request = new sql.Request();
+        
+        // Cấp thêm Đơn vị tính (Calculation_Unit) mặc định là 'Tháng' để chiều lòng SQL Server
         await request
             .input('Service_Name', sql.NVarChar, Service_Name)
-            .input('Unit_Price', sql.Float, Price) // Map đúng vào cột Unit_Price
-            .query('INSERT INTO Services (Service_Name, Unit_Price) VALUES (@Service_Name, @Unit_Price)');
-        res.status(201).json({ message: '🎉 Đã thêm loại phí/dịch vụ mới thành công!' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
+            .input('Unit_Price', sql.Float, Price)
+            .query(`
+                INSERT INTO Services (Service_Name, Unit_Price, Calculation_Unit) 
+                VALUES (@Service_Name, @Unit_Price, N'Tháng')
+            `);
+            
+        res.status(201).json({ message: 'Đã thêm loại phí/dịch vụ mới thành công!' });
+    } catch (error) { 
+        // In lỗi đỏ chót ra màn hình đen (Terminal) để dễ bắt bệnh
+        console.error("LỖI SQL KHI THÊM DỊCH VỤ:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message }); 
+    }
 };
 
 // Đổi giá tiền của một loại phí
