@@ -54,6 +54,7 @@
                 <span style="font-size: 26px;">🔔</span>
                 <span id="notiBadge" style="position: absolute; top: -5px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold; display: none;">0</span>
             </div>
+            <button id="btnOpenChangePass" style="background: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">🔑 Đổi Mật Khẩu</button>
             <button class="btn-logout" id="btnLogout">Đăng xuất</button>
         </div>
     </div>
@@ -317,6 +318,31 @@
                 <button onclick="xacNhanDaChuyenKhoan()" style="background:#27ae60; color:white; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">✅ Tôi Đã Chuyển Khoản</button>
                 <button onclick="dongModalQR()" style="background:#95a5a6; color:white; padding:10px; border:none; border-radius:6px; cursor:pointer;">Đóng / Hủy Giao Dịch</button>
             </div>
+        </div>
+    </div>
+
+    <div id="modalChangePass" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;">
+        <div style="background:white; width:350px; margin: 100px auto; padding:25px; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+            <h3 style="color:#f39c12; margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">🔐 Đổi Mật Khẩu</h3>
+            <form id="formChangePass">
+                <div class="form-group">
+                    <label>Mật khẩu hiện tại:</label>
+                    <input type="password" id="oldPass" required placeholder="Nhập mật khẩu đang dùng...">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu mới:</label>
+                    <input type="password" id="newPass" required placeholder="Nhập mật khẩu mới...">
+                </div>
+                <div class="form-group">
+                    <label>Xác nhận mật khẩu mới:</label>
+                    <input type="password" id="confirmPass" required placeholder="Nhập lại mật khẩu mới...">
+                </div>
+                
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button type="submit" style="flex:1; background:#27ae60; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Lưu Thay Đổi</button>
+                    <button type="button" onclick="document.getElementById('modalChangePass').style.display='none'" style="flex:1; background:#95a5a6; color:white; padding:10px; border:none; border-radius:6px; cursor:pointer;">Hủy</button>
+                </div>
+            </form>
         </div>
     </div>
 

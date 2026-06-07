@@ -42,8 +42,12 @@ if (formHousehold) {
         const data = {
             Room_Number: document.getElementById('roomNumber').value,
             Owner_Name: document.getElementById('ownerName').value,
-            Move_In_Date: document.getElementById('moveInDate').value
+            Move_In_Date: document.getElementById('moveInDate').value,
+            // Gom thêm 2 thông tin tài khoản
+            Username: document.getElementById('accUsername').value,
+            Password: document.getElementById('accPassword').value
         };
+        // Vẫn gọi vào API cũ, Backend sẽ lo phần còn lại
         callManagerApi(`${API_BASE}/household`, data, 'formHousehold', fetchHouseholds);
     });
 }
@@ -92,19 +96,6 @@ if (formInvoice) {
                 alert('❌ Lỗi: ' + result.message);
             }
         } catch (error) { console.error('Lỗi API tạo hóa đơn thủ công:', error); }
-    });
-}
-
-const formAccount = document.getElementById('formAccount');
-if (formAccount) {
-    formAccount.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const data = {
-            Household_ID: document.getElementById('accHouseholdId').value,
-            Username: document.getElementById('accUsername').value,
-            Password: document.getElementById('accPassword').value
-        };
-        callManagerApi(`${API_BASE}/account`, data, 'formAccount');
     });
 }
 

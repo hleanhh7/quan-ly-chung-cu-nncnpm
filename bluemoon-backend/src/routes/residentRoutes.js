@@ -31,5 +31,8 @@ router.post('/add-resident', residentController.addResident); // Tên đường 
 router.post('/declaration', residentController.createDeclaration);
 router.get('/family-members', residentController.getFamilyMembers);
 
+//6 doi mat khau 
+router.put('/change-password', residentController.changePassword);
+
 // LUÔN LUÔN ĐỂ DÒNG NÀY Ở CUỐI CÙNG
 module.exports = router;

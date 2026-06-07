@@ -547,6 +547,65 @@ async function loadMyFeedbacks() {
 loadMyFeedbacks();
 
 // =========================================================================
+// XỬ LÝ: ĐỔI MẬT KHẨU CƯ DÂN
+// =========================================================================
+
+// Mở cửa sổ Modal khi bấm nút
+const btnOpenChangePass = document.getElementById('btnOpenChangePass');
+if (btnOpenChangePass) {
+    btnOpenChangePass.addEventListener('click', () => {
+        document.getElementById('modalChangePass').style.display = 'block';
+    });
+}
+
+// Gửi form đổi mật khẩu
+const formChangePass = document.getElementById('formChangePass');
+if (formChangePass) {
+    formChangePass.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const oldPass = document.getElementById('oldPass').value;
+        const newPass = document.getElementById('newPass').value;
+        const confirmPass = document.getElementById('confirmPass').value;
+
+        // Bẫy lỗi Frontend: Nếu nhập 2 ô mật khẩu mới không giống nhau
+        if (newPass !== confirmPass) {
+            return alert('❌ Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/change-password`, {
+                method: 'PUT', // Dùng PUT vì đây là hành động Cập nhật
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Báo thông báo cho Cư dân
+                alert('🎉 ' + result.message + ' Vui lòng đăng nhập lại.');
+                
+                // Xóa SẠCH thẻ ra vào (token)
+                localStorage.removeItem('bluemoon_token');
+                localStorage.removeItem('bluemoon_role');
+                
+                // Đá thẳng về trang đăng nhập
+                window.location.href = 'index.html';
+            } else {
+                alert('❌ Lỗi: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Lỗi đổi mật khẩu:', error);
+            alert('❌ Lỗi kết nối tới máy chủ!');
+        }
+    });
+}
+
+// =========================================================================
 // 7. KHỞI CHẠY CÁC HÀM TẢI DỮ LIỆU KHI MỞ TRANG
 // =========================================================================
 fetchInvoices();

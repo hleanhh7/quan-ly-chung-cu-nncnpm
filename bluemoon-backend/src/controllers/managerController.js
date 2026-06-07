@@ -1,56 +1,72 @@
 const { sql } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
-// Thiết lập số phòng tối đa của chung cư Bluemoon theo đúng thực tế
+// API: Thêm hộ khẩu (Căn hộ) mới - Đã tích hợp Giới hạn và Kiểm tra mã phòng hợp lệ
 const MAX_ROOMS = 379; 
 
-// API: Thêm hộ khẩu (Căn hộ) mới - Đã tích hợp Giới hạn và Kiểm tra mã phòng hợp lệ
+// API: Tạo hộ khẩu VÀ Cấp tài khoản cùng lúc
 const createHousehold = async (req, res) => {
     try {
-        const { Room_Number, Owner_Name, Move_In_Date } = req.body;
+        const { Room_Number, Owner_Name, Move_In_Date, Username, Password } = req.body;
         const request = new sql.Request();
 
-        // 1. KIỂM TRA MÃ PHÒNG (Không cho phép nhập mã phòng lớn hơn 379)
-        // Dùng Regex để tách lấy phần số. (Ví dụ: "B202" -> 202, "789" -> 789)
-        const roomNumValue = parseInt(Room_Number.replace(/\D/g, '')); 
-        
+        // 1. KIỂM TRA MÃ PHÒNG HỢP LỆ
+        const roomString = String(Room_Number);
+        const roomNumValue = parseInt(roomString.replace(/\D/g, '')); 
         if (!roomNumValue || roomNumValue > MAX_ROOMS) {
-            return res.status(400).json({ 
-                message: `❌ Mã phòng không hợp lệ! Các căn hộ chỉ được đánh số tối đa đến ${MAX_ROOMS}.` 
-            });
+            return res.status(400).json({ message: `❌ Mã phòng không hợp lệ! Tối đa đến ${MAX_ROOMS}.` });
         }
 
-        // 2. KIỂM TRA GIỚI HẠN TỔNG SỐ PHÒNG ĐANG CÓ NGƯỜI Ở
+        // 2. KIỂM TRA GIỚI HẠN SỐ PHÒNG
         const countResult = await request.query(`SELECT COUNT(*) as TotalActive FROM Households WHERE Status = N'Đang ở'`);
-        const currentActiveRooms = countResult.recordset[0].TotalActive;
-        
-        if (currentActiveRooms >= MAX_ROOMS) {
-            return res.status(400).json({ 
-                message: `❌ Không thể thêm mới! Chung cư Bluemoon đã đạt giới hạn đầy kín ${MAX_ROOMS} hộ.` 
-            });
+        if (countResult.recordset[0].TotalActive >= MAX_ROOMS) {
+            return res.status(400).json({ message: `❌ Chung cư Bluemoon đã kín ${MAX_ROOMS} hộ.` });
         }
 
-        // 3. KIỂM TRA PHÒNG NÀY ĐÃ CÓ NGƯỜI Ở CHƯA
+        // 3. KIỂM TRA TRÙNG LẶP PHÒNG
         const checkRoom = await request
-            .input('Room_Number', sql.VarChar, Room_Number)
-            .query(`SELECT * FROM Households WHERE Room_Number = @Room_Number AND Status = N'Đang ở'`);
-
+            .input('Room_Number_Check', sql.VarChar, Room_Number)
+            .query(`SELECT * FROM Households WHERE Room_Number = @Room_Number_Check AND Status = N'Đang ở'`);
         if (checkRoom.recordset.length > 0) {
             return res.status(400).json({ message: '❌ Căn hộ này hiện đang có hộ khác sinh sống!' });
         }
 
-        // 4. TIẾN HÀNH LƯU VÀO DATABASE
-        await request
+        // 4. KIỂM TRA USERNAME ĐÃ CÓ AI DÙNG CHƯA (MỚI)
+        const checkUser = await request
+            .input('Username', sql.VarChar, Username)
+            .query(`SELECT * FROM Accounts WHERE Username = @Username`);
+        if (checkUser.recordset.length > 0) {
+            return res.status(400).json({ message: '❌ Tên đăng nhập này đã có người sử dụng, vui lòng chọn tên khác!' });
+        }
+
+        // 5. LƯU HỘ KHẨU VÀ LẤY NGAY ID VỪA ĐƯỢC TẠO RA
+        const insertHousehold = await request
+            .input('Room_Number', sql.VarChar, Room_Number)
             .input('Owner_Name', sql.NVarChar, Owner_Name)
             .input('Move_In_Date', sql.Date, Move_In_Date)
             .query(`
                 INSERT INTO Households (Room_Number, Owner_Name, Move_In_Date, Status) 
+                OUTPUT INSERTED.Household_ID
                 VALUES (@Room_Number, @Owner_Name, @Move_In_Date, N'Đang ở')
             `);
 
-        res.status(201).json({ message: '🎉 Thêm hộ khẩu mới thành công!' });
+        // Hứng lấy cái ID vừa được SQL cấp
+        const newHouseholdId = insertHousehold.recordset[0].Household_ID;
+
+        // 6. TẠO TÀI KHOẢN GẮN VỚI ID ĐÓ LUÔN
+        const accountReq = new sql.Request();
+        await accountReq
+            .input('Household_ID', sql.Int, newHouseholdId)
+            .input('Acc_Username', sql.VarChar, Username)
+            .input('Acc_Password', sql.VarChar, Password) // Lưu ý: Cột trong DB của bạn là Password hay Password_Hash thì sửa lại cho khớp nhé
+            .query(`
+                INSERT INTO Accounts (Username, Password_Hash, Role, Household_ID) 
+                VALUES (@Acc_Username, @Acc_Password, 'Resident', @Household_ID)
+            `);
+
+        res.status(201).json({ message: '🎉 Đã tạo Hộ khẩu và Cấp tài khoản Cư dân thành công!' });
     } catch (error) { 
-        console.error("Lỗi tạo hộ khẩu:", error);
+        console.error("Lỗi tạo hộ khẩu & tài khoản:", error);
         res.status(500).json({ message: 'Lỗi server', error: error.message }); 
     }
 };
@@ -80,7 +96,7 @@ const addResident = async (req, res) => {
 const getAllHouseholds = async (req, res) => {
     try {
         const request = new sql.Request();
-        const result = await request.query('SELECT * FROM Households ORDER BY Room_Number ASC');
+        const result = await request.query('SELECT * FROM Households ORDER BY Household_ID DESC');
         res.status(200).json(result.recordset);
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
@@ -238,25 +254,38 @@ const getPendingServiceRequests = async (req, res) => {
 // -------------------------------------------------------------------------
 // 1. LUỒNG THỦ CÔNG: ADMIN TỰ TẠO HÓA ĐƠN PHÁT SINH
 // -------------------------------------------------------------------------
+// API: Phát hành hóa đơn thủ công (Đã chuẩn hóa theo Schema)
 const createInvoice = async (req, res) => {
     try {
         const { Household_ID, Billing_Month, Billing_Year, Total_Amount } = req.body;
         const request = new sql.Request();
-        
+
+        // 1. Kiểm tra xem ID Hộ khẩu này có thực sự tồn tại trong DB không
+        const checkHouse = await request
+            .input('Check_ID', sql.Int, Household_ID)
+            .query(`SELECT * FROM Households WHERE Household_ID = @Check_ID`);
+            
+        if (checkHouse.recordset.length === 0) {
+            return res.status(400).json({ message: 'ID Hộ khẩu không tồn tại! Vui lòng nhập ID hợp lệ.' });
+        }
+
+        // 2. Chèn hóa đơn vào Database (Sử dụng đúng cột Payment_Status)
         await request
             .input('Household_ID', sql.Int, Household_ID)
-            .input('Month', sql.Int, Billing_Month)
-            .input('Year', sql.Int, Billing_Year)
+            .input('Billing_Month', sql.Int, Billing_Month)
+            .input('Billing_Year', sql.Int, Billing_Year)
             .input('Total_Amount', sql.Float, Total_Amount)
             .query(`
-                INSERT INTO Invoices (Household_ID, Billing_Month, Billing_Year, Total_Amount, Payment_Status) 
-                VALUES (@Household_ID, @Month, @Year, @Total_Amount, N'Chưa thanh toán')
+                INSERT INTO Invoices (Household_ID, Billing_Month, Billing_Year, Total_Amount, Payment_Status)
+                VALUES (@Household_ID, @Billing_Month, @Billing_Year, @Total_Amount, N'Chưa thanh toán')
             `);
-            
-        res.status(201).json({ message: 'Phát hành hóa đơn thủ công thành công!' });
-    } catch (error) { res.status(500).json({ message: 'Lỗi phát hành hóa đơn', error: error.message }); }
-};
 
+        res.status(201).json({ message: 'Phát hành hóa đơn thủ công thành công!' });
+    } catch (error) {
+        console.error("🔥 LỖI SQL TẠO HÓA ĐƠN:", error);
+        res.status(500).json({ message: 'Lỗi SQL: ' + error.message }); 
+    }
+};
 // -------------------------------------------------------------------------
 // 2. LUỒNG TỰ ĐỘNG: DUYỆT DỊCH VỤ -> TỰ SINH HÓA ĐƠN
 // -------------------------------------------------------------------------

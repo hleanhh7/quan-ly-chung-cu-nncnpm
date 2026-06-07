@@ -273,6 +273,49 @@ const getFamilyMembers = async (req, res) => {
     }
 };
 
+// API: Đổi mật khẩu tài khoản Cư dân (Tự động nhận diện cột DB)
+const changePassword = async (req, res) => {
+    try {
+        const householdId = req.user.Household_ID || req.user.householdId || req.user.id;
+        const { oldPassword, newPassword } = req.body;
+        const request = new sql.Request();
+
+        // 1. Lấy TOÀN BỘ thông tin tài khoản ra để soi xem DB đang dùng tên cột gì
+        const userQuery = await request
+            .input('Household_ID', sql.Int, householdId)
+            .query('SELECT * FROM Accounts WHERE Household_ID = @Household_ID');
+
+        if (userQuery.recordset.length === 0) {
+            return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
+        }
+
+        const account = userQuery.recordset[0];
+        
+        //Tự động kiểm tra xem DB dùng cột Password hay Password_Hash
+        const passwordColumnName = account.Password_Hash !== undefined ? 'Password_Hash' : 'Password';
+        const currentPassword = account[passwordColumnName];
+
+        // 2. So sánh mật khẩu cũ
+        if (currentPassword !== oldPassword) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
+        }
+
+        // 3. Tiến hành Cập nhật Mật khẩu mới ĐÚNG vào cái cột vừa tìm được
+        const updateReq = new sql.Request();
+        await updateReq
+            .input('NewPassword', sql.VarChar, newPassword)
+            .input('Household_ID', sql.Int, householdId)
+            .query(`UPDATE Accounts SET ${passwordColumnName} = @NewPassword WHERE Household_ID = @Household_ID`);
+
+        console.log(`[TEST] Đã đổi thành công MK cho Hộ ID: ${householdId} tại cột ${passwordColumnName}`);
+        
+        res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+    } catch (error) {
+        console.error("LỖI ĐỔI MẬT KHẨU:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
 module.exports = { 
     getMyInvoices, 
     createDeclaration, 
@@ -286,5 +329,6 @@ module.exports = {
     sendFeedback,
     getMyFeedbacks,
     payMyInvoice,
-    getFamilyMembers
+    getFamilyMembers,
+    changePassword
 };
