@@ -558,51 +558,56 @@ if (btnOpenChangePass) {
     });
 }
 
-// Gửi form đổi mật khẩu
-const formChangePass = document.getElementById('formChangePass');
-if (formChangePass) {
-    formChangePass.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const oldPass = document.getElementById('oldPass').value;
-        const newPass = document.getElementById('newPass').value;
-        const confirmPass = document.getElementById('confirmPass').value;
+// =========================================================================
+// HÀM: THỰC HIỆN ĐỔI MẬT KHẨU (GỌI TRỰC TIẾP TỪ NÚT BẤM)
+// =========================================================================
+async function thucHienDoiMatKhau() {
+    // 1. Thu thập dữ liệu
+    const oldPass = document.getElementById('oldPass').value;
+    const newPass = document.getElementById('newPass').value;
+    const confirmPass = document.getElementById('confirmPass').value;
 
-        // Bẫy lỗi Frontend: Nếu nhập 2 ô mật khẩu mới không giống nhau
-        if (newPass !== confirmPass) {
-            return alert('❌ Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+    // 2. Chặn lỗi nhập liệu
+    if (!oldPass || !newPass || !confirmPass) {
+        return alert('❌ Vui lòng điền đầy đủ các ô mật khẩu!');
+    }
+    if (newPass !== confirmPass) {
+        return alert('❌ Mật khẩu xác nhận không khớp!');
+    }
+
+    // 3. Lấy thẻ bài (Token)
+    const currentToken = localStorage.getItem('bluemoon_token');
+    if (!currentToken) {
+        return alert('❌ Lỗi: Không tìm thấy phiên đăng nhập, hãy F5 tải lại trang!');
+    }
+
+    try {
+        // 4. Gửi yêu cầu thẳng xuống Backend
+        const response = await fetch(`${API_BASE}/change-password`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentToken}` 
+            },
+            body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
+        });
+
+        const result = await response.json();
+
+        // 5. Xử lý kết quả trả về
+        if (response.ok) {
+            alert('🎉 ' + result.message);
+            // Xóa mọi dấu vết
+            localStorage.clear(); 
+            // VŨ KHÍ TỐI THƯỢNG: Ép chuyển trang bất chấp mọi thứ
+            window.location.replace('index.html'); 
+        } else {
+            alert('❌ Lỗi: ' + result.message);
         }
-
-        try {
-            const response = await fetch(`${API_BASE}/change-password`, {
-                method: 'PUT', // Dùng PUT vì đây là hành động Cập nhật
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Báo thông báo cho Cư dân
-                alert('🎉 ' + result.message + ' Vui lòng đăng nhập lại.');
-                
-                // Xóa SẠCH thẻ ra vào (token)
-                localStorage.removeItem('bluemoon_token');
-                localStorage.removeItem('bluemoon_role');
-                
-                // Đá thẳng về trang đăng nhập
-                window.location.href = 'index.html';
-            } else {
-                alert('❌ Lỗi: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Lỗi đổi mật khẩu:', error);
-            alert('❌ Lỗi kết nối tới máy chủ!');
-        }
-    });
+    } catch (error) {
+        console.error('🔥 LỖI TẠI FRONTEND:', error);
+        alert('❌ Lỗi kết nối tới máy chủ! Hãy kiểm tra Terminal Backend.');
+    }
 }
 
 // =========================================================================

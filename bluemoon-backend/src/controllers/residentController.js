@@ -1,4 +1,5 @@
 const { sql } = require('../config/db');
+const bcrypt = require('bcryptjs'); // Hoặc require('bcrypt') 
 
 // API 1: Xem danh sách hóa đơn của nhà mình
 const getMyInvoices = async (req, res) => {
@@ -273,48 +274,58 @@ const getFamilyMembers = async (req, res) => {
     }
 };
 
-// API: Đổi mật khẩu tài khoản Cư dân (Tự động nhận diện cột DB)
+// API: Đổi mật khẩu (Hỗ trợ giải mã Bcrypt)
 const changePassword = async (req, res) => {
     try {
-        const householdId = req.user.Household_ID || req.user.householdId || req.user.id;
+        const username = req.user.Username || req.user.username;
+        const id = req.user.Account_ID || req.user.accountId || req.user.id || req.user.Household_ID;
+
         const { oldPassword, newPassword } = req.body;
         const request = new sql.Request();
 
-        // 1. Lấy TOÀN BỘ thông tin tài khoản ra để soi xem DB đang dùng tên cột gì
-        const userQuery = await request
-            .input('Household_ID', sql.Int, householdId)
-            .query('SELECT * FROM Accounts WHERE Household_ID = @Household_ID');
-
-        if (userQuery.recordset.length === 0) {
-            return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
+        // 1. TÌM TÀI KHOẢN (Chỉ tìm bằng ID hoặc Username, CHƯA so sánh mật khẩu vội)
+        let queryStr = "";
+        if (username) {
+            request.input('UName', sql.VarChar, username);
+            queryStr = "SELECT * FROM Accounts WHERE Username = @UName";
+        } else if (id) {
+            request.input('UID', sql.Int, id);
+            queryStr = "SELECT * FROM Accounts WHERE Account_ID = @UID OR Household_ID = @UID";
+        } else {
+            return res.status(400).json({ message: 'Lỗi: Phiên đăng nhập không hợp lệ!' });
         }
 
-        const account = userQuery.recordset[0];
-        
-        //Tự động kiểm tra xem DB dùng cột Password hay Password_Hash
-        const passwordColumnName = account.Password_Hash !== undefined ? 'Password_Hash' : 'Password';
-        const currentPassword = account[passwordColumnName];
-
-        // 2. So sánh mật khẩu cũ
-        if (currentPassword !== oldPassword) {
-            return res.status(400).json({ message: 'Mật khẩu hiện tại không chính xác!' });
+        const checkQuery = await request.query(queryStr);
+        if (checkQuery.recordset.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy tài khoản!' });
         }
 
-        // 3. Tiến hành Cập nhật Mật khẩu mới ĐÚNG vào cái cột vừa tìm được
-        const updateReq = new sql.Request();
-        await updateReq
-            .input('NewPassword', sql.VarChar, newPassword)
-            .input('Household_ID', sql.Int, householdId)
-            .query(`UPDATE Accounts SET ${passwordColumnName} = @NewPassword WHERE Household_ID = @Household_ID`);
+        const account = checkQuery.recordset[0];
 
-        console.log(`[TEST] Đã đổi thành công MK cho Hộ ID: ${householdId} tại cột ${passwordColumnName}`);
-        
-        res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+        // 2. GIẢI MÃ VÀ SO SÁNH MẬT KHẨU CŨ BẰNG BCRYPT
+        // (Đây chính là chìa khóa giúp 123456 khớp với chuỗi loằng ngoằng trong DB)
+        const isMatch = await bcrypt.compare(String(oldPassword).trim(), account.Password_Hash);
+        if (!isMatch) {
+            return res.status(400).json({ message: '❌ Mật khẩu hiện tại không chính xác!' });
+        }
+
+        // 3. MÃ HÓA MẬT KHẨU MỚI (12345678) TRƯỚC KHI LƯU VÀO DB
+        const salt = await bcrypt.genSalt(10);
+        const hashedNewPassword = await bcrypt.hash(String(newPassword).trim(), salt);
+
+        // 4. LƯU MẬT KHẨU ĐÃ MÃ HÓA VÀO DATABASE
+        await new sql.Request()
+            .input('NewPass', sql.VarChar, hashedNewPassword)
+            .input('AccID', sql.Int, account.Account_ID)
+            .query('UPDATE Accounts SET Password_Hash = @NewPass WHERE Account_ID = @AccID');
+
+        res.status(200).json({ message: '🎉 Đổi mật khẩu thành công!' });
     } catch (error) {
-        console.error("LỖI ĐỔI MẬT KHẨU:", error);
+        console.error("🔥 LỖI ĐỔI MẬT KHẨU:", error);
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+
 
 module.exports = { 
     getMyInvoices, 

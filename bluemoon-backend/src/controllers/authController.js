@@ -88,7 +88,7 @@ const login = async (req, res) => {
         // 2. CƠ CHẾ LINH HOẠT: Chấp nhận mật khẩu '123456' trực tiếp hoặc chuỗi khớp nhau
         // Nếu bạn gõ đúng mật khẩu test là 123456, hệ thống cho qua luôn để test tính năng dịch vụ
         let isMatch = false;
-        if (inputPassword === '123456' || inputPassword === user.Password_Hash) {
+        if (inputPassword === user.Password_Hash) {
             isMatch = true;
         } else {
             // Nếu không phải 123456, thử dùng thư viện so khớp lại lần cuối
