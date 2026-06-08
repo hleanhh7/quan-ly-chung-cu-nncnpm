@@ -171,8 +171,9 @@ async function fetchAllInvoices() {
             invoices.forEach(inv => {
                 // 1. Tạo menu xổ xuống (Dropdown) cho cột Trạng thái
 // 1. Tạo menu xổ xuống (Có thêm id="status-select-..." và truyền thêm inv.Total_Amount)
+                // 1. Tạo menu xổ xuống (Đã sửa lỗi truyền tham số this)
                 const statusDropdown = `
-                    <select id="status-select-${inv.Invoice_ID}" onchange="changeInvoiceStatus(${inv.Invoice_ID}, this.value, ${inv.Total_Amount})" 
+                    <select id="status-select-${inv.Invoice_ID}" onchange="changeInvoiceStatus(${inv.Invoice_ID}, this)" 
                             style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer;
                                    background-color: ${inv.Payment_Status === 'Đã thanh toán' ? '#d4edda' : '#f8d7da'}; 
                                    color: ${inv.Payment_Status === 'Đã thanh toán' ? '#155724' : '#721c24'};">
@@ -613,12 +614,63 @@ window.dongModalNhanKhau = function() {
     document.getElementById('modalNhanKhau').style.display = 'none';
 };
 
-// =====================================================================
-// HÀM MỚI: GỬI LỆNH CẬP NHẬT TRẠNG THÁI HÓA ĐƠN XUỐNG BACKEND
-// =====================================================================
-// =====================================================================
-// HÀM MỚI: GỬI LỆNH CẬP NHẬT TRẠNG THÁI HÓA ĐƠN XUỐNG BACKEND
-// =====================================================================
+// =======================================================================
+// HÀM: CẬP NHẬT TRẠNG THÁI HÓA ĐƠN (Gắn vào Window để HTML có thể gọi được)
+// =======================================================================
+window.changeInvoiceStatus = async function(invoiceId, selectElement) {
+    const newStatus = selectElement.value;
+    const token = localStorage.getItem('bluemoon_token');
+
+    // 1. CHUYỂN MÀU GIAO DIỆN NGAY LẬP TỨC 
+    if (newStatus === 'Chưa thanh toán') {
+        selectElement.style.backgroundColor = '#f8d7da'; // Nền đỏ
+        selectElement.style.color = '#721c24';
+    } else {
+        selectElement.style.backgroundColor = '#d4edda'; // Nền xanh
+        selectElement.style.color = '#155724';
+    }
+
+    // 2. NẾU LÀ HOÀN TÁC VỀ "CHƯA THANH TOÁN", CẦN XÁC NHẬN CẨN THẬN
+    if (newStatus === 'Chưa thanh toán') {
+        const confirmRevert = confirm(`⚠️ CẢNH BÁO: Bạn đang muốn hoàn tác hóa đơn #${invoiceId} về trạng thái CHƯA THANH TOÁN. Bạn có chắc chắn không?`);
+        
+        // Nếu Admin bấm Cancel (Hủy), ta trả lại màu và trạng thái như cũ
+        if (!confirmRevert) {
+            selectElement.value = 'Đã thanh toán';
+            selectElement.style.backgroundColor = '#d4edda';
+            selectElement.style.color = '#155724';
+            return; // Dừng luôn, không gọi API nữa
+        }
+    }
+
+    // 3. GỬI LỆNH XUỐNG BACKEND DATABASE
+    try {
+        // Lưu ý: Đảm bảo đường dẫn API này khớp với Backend của nhóm bạn
+        const response = await fetch(`${API_BASE}/invoice/${invoiceId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ Payment_Status: newStatus })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log(`🎉 Đã cập nhật hóa đơn #${invoiceId} thành: ${newStatus}`);
+            // Có thể gọi lại hàm vẽ bảng ở đây nếu muốn nút [Thu tiền] hiện lại
+            if(typeof fetchAllInvoices === 'function') fetchAllInvoices();
+        } else {
+            alert('❌ Lỗi cập nhật: ' + result.message);
+            // Nếu lỗi, phải ép ô Dropdown quay về trạng thái cũ
+            selectElement.value = newStatus === 'Chưa thanh toán' ? 'Đã thanh toán' : 'Chưa thanh toán';
+        }
+    } catch (error) {
+        console.error("🔥 LỖI FRONTEND:", error);
+        alert('❌ Không thể kết nối tới Server!');
+    }
+};
 
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG

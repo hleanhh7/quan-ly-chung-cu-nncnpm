@@ -24,7 +24,7 @@ router.post('/invoice', managerController.createInvoice);
 router.get('/invoices', managerController.getAllInvoices);
 router.put('/invoice/:id/pay', managerController.payInvoice);
 // BỔ SUNG API MỚI: Quản lý tự cập nhật trạng thái hóa đơn (Check bằng cơm)
-router.put('/invoices/:id/status', managerController.updateInvoiceStatus);
+router.put('/invoice/:id/status', managerController.updateInvoiceStatus);
 
 // ĐƯỜNG DẪN KHAI BÁO TẠM TRÚ / TẠM VẮNG
 router.get('/declarations', managerController.getPendingDeclarations);
@@ -44,6 +44,7 @@ router.get('/services', managerController.getAllServiceTypes);
 router.post('/service', managerController.createServiceType);
 router.put('/service/:id', managerController.updateServicePrice);
 router.delete('/service/:id', managerController.deleteServiceType);
+
 
 // LUON LUON DE DONG NAY O CUOI CUNG CUA FILE
 module.exports = router;
