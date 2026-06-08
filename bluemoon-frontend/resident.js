@@ -100,22 +100,14 @@ function dongModalQR() {
     document.getElementById('modalQR').style.display = 'none';
 }
 
-async function xacNhanDaChuyenKhoan() {
-    try {
-        const response = await fetch(`${API_BASE}/invoice/${currentPayingInvoiceId}/pay`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            alert('🎉 Hệ thống đã ghi nhận thanh toán thành công! BQL sẽ tiến hành đối soát hóa đơn của bạn.');
-            dongModalQR();
-            fetchInvoices(); // Làm mới bảng
-        } else {
-            const data = await response.json();
-            alert('❌ Lỗi hệ thống: ' + data.message);
-        }
-    } catch (error) { console.error('Lỗi thanh toán:', error); }
+function xacNhanDaChuyenKhoan() {
+    // 1. Chỉ hiển thị thông báo cho cư dân yên tâm
+    alert('✅ Cảm ơn bạn! Hệ thống đã ghi nhận thông tin. Ban Quản Lý sẽ kiểm tra biến động số dư và cập nhật trạng thái hóa đơn trong thời gian sớm nhất.');
+    
+    // 2. Đóng bảng mã QR lại
+    dongModalQR();
+    
+    // (Xóa luôn lệnh fetchInvoices() vì lúc này trạng thái trên Database chưa đổi, tải lại bảng thì nó vẫn hiện là "Chưa thanh toán" thôi)
 }
 
 // =========================================================================

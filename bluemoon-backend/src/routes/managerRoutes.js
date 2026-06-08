@@ -23,6 +23,8 @@ router.put('/service-request/:id', managerController.updateServiceRequestStatus)
 router.post('/invoice', managerController.createInvoice);
 router.get('/invoices', managerController.getAllInvoices);
 router.put('/invoice/:id/pay', managerController.payInvoice);
+// BỔ SUNG API MỚI: Quản lý tự cập nhật trạng thái hóa đơn (Check bằng cơm)
+router.put('/invoices/:id/status', managerController.updateInvoiceStatus);
 
 // ĐƯỜNG DẪN KHAI BÁO TẠM TRÚ / TẠM VẮNG
 router.get('/declarations', managerController.getPendingDeclarations);

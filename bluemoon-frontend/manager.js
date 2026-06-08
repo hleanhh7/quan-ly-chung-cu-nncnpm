@@ -162,30 +162,44 @@ async function fetchAllInvoices() {
         const invoices = await response.json();
         const tbody = document.getElementById('allInvoicesTableBody');
         if(!tbody) return;
+        
         tbody.innerHTML = '';
+        
         if (invoices.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hóa đơn nào.</td></tr>';
         } else {
             invoices.forEach(inv => {
+                // 1. Tạo menu xổ xuống (Dropdown) cho cột Trạng thái
+// 1. Tạo menu xổ xuống (Có thêm id="status-select-..." và truyền thêm inv.Total_Amount)
+                const statusDropdown = `
+                    <select id="status-select-${inv.Invoice_ID}" onchange="changeInvoiceStatus(${inv.Invoice_ID}, this.value, ${inv.Total_Amount})" 
+                            style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer;
+                                   background-color: ${inv.Payment_Status === 'Đã thanh toán' ? '#d4edda' : '#f8d7da'}; 
+                                   color: ${inv.Payment_Status === 'Đã thanh toán' ? '#155724' : '#721c24'};">
+                        <option value="Chưa thanh toán" ${inv.Payment_Status === 'Chưa thanh toán' ? 'selected' : ''}>Chưa thanh toán</option>
+                        <option value="Đã thanh toán" ${inv.Payment_Status === 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
+                    </select>
+                `;
+
+                // 2. Nút Hành động
                 const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
                     ? `<button onclick="moModalThuTien(${inv.Invoice_ID}, ${inv.Total_Amount})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
                     : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
-                const statusColor = inv.Payment_Status === 'Chưa thanh toán' ? '#e74c3c' : '#27ae60';
+                
+                // 3. In ra giao diện (Lưu ý: Gắn id="action-cell-..." vào cột cuối cùng)
                 tbody.innerHTML += `
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${inv.Room_Number}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
                         <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${Number(inv.Total_Amount).toLocaleString('vi-VN')} đ</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: ${statusColor}; font-weight: bold;">${inv.Payment_Status}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${statusDropdown}</td>
+                        <td id="action-cell-${inv.Invoice_ID}" style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
                     </tr>
                 `;
             });
         }
     } catch (error) { console.error('Lỗi tải hóa đơn:', error); }
-}
-
-let currentInvoiceId = null;
+}let currentInvoiceId = null;
 let currentInvoiceTotal = 0;
 
 window.moModalThuTien = function(id, total) {
@@ -598,6 +612,13 @@ window.xemNhanKhau = async function(id, room) {
 window.dongModalNhanKhau = function() {
     document.getElementById('modalNhanKhau').style.display = 'none';
 };
+
+// =====================================================================
+// HÀM MỚI: GỬI LỆNH CẬP NHẬT TRẠNG THÁI HÓA ĐƠN XUỐNG BACKEND
+// =====================================================================
+// =====================================================================
+// HÀM MỚI: GỬI LỆNH CẬP NHẬT TRẠNG THÁI HÓA ĐƠN XUỐNG BACKEND
+// =====================================================================
 
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG

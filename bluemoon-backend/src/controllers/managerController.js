@@ -481,6 +481,35 @@ const getResidentsByHousehold = async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Lỗi server', error: error.message }); }
 };
 
+// API: Quản lý cập nhật trạng thái Hóa đơn (Check bằng cơm)
+const updateInvoiceStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Payment_Status } = req.body;
+        const request = new sql.Request();
+
+        // Nếu chuyển sang Đã thanh toán thì lưu ngày giờ hiện tại, ngược lại thì gỡ ngày giờ
+        const paymentDateQuery = Payment_Status === 'Đã thanh toán' ? 'GETDATE()' : 'NULL';
+
+        await request
+            .input('Invoice_ID', sql.Int, id)
+            .input('Payment_Status', sql.NVarChar, Payment_Status)
+            .query(`
+                UPDATE Invoices 
+                SET Payment_Status = @Payment_Status, 
+                    Payment_Date = ${paymentDateQuery}
+                WHERE Invoice_ID = @Invoice_ID
+            `);
+
+        res.status(200).json({ message: 'Cập nhật trạng thái thành công!' });
+    } catch (error) {
+        console.error("LỖI CẬP NHẬT TRẠNG THÁI HÓA ĐƠN:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// NHỚ BỔ SUNG updateInvoiceStatus VÀO module.exports Ở CUỐI FILE NHÉ!
+
 // === LUÔN ĐỂ CÁI NÀY Ở DƯỚI CÙNG VÀ CHỨA TẤT CẢ CÁC HÀM ===
 module.exports = { 
     createHousehold, 
@@ -505,5 +534,6 @@ module.exports = {
     createServiceType,
     updateServicePrice,
     deleteServiceType,
-    getResidentsByHousehold
+    getResidentsByHousehold,
+    updateInvoiceStatus
 };
