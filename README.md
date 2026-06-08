@@ -148,14 +148,9 @@ lưu ý, hiện nhớ check frontend để biết những chức năng hiện đ
    ┣ 📜 manager.js              # Logic Javascript, Fetch API tương tác phân hệ Quản lý
    ┗ 📜 resident.js             # Logic Javascript, Fetch API tương tác phân hệ Cư dân
 ```
-4. Các chức năng cần update:
-- gộp phần tạo hộ khẩu và cấp tài khoản thành 1 ( đã fix ) 
-- thêm chức năng tinh chỉnh và quản lý các loại phí ( đã fix )
-- sửa lại phần khai báo tạm trú tạm vắng: cần CCCD chứ ID nhân khẩu là gì?? ( đã fix , bây giờ 1 phòng chỉ đc cấp 1 tk do chủ hộ nắm và chủ hộ có chức năg thêm thông tin các nhân khẩu trong nhà để phục vụ khai báo hành chính )
-- khi cư dân đăng kí dịch vụ, bên bql không nhận được danh sách để duyệt và bên cư dân, sau khi duyệt thì nên tự động tạo hóa đơn luôn chứ không cần phải có chức năng phát hành hóa đơn ( đã fix , ngoài ra vẫn giữ nguyên chức năng tạo hóa đơn thủ công cho trường hợp phí phát sinh )
-- Ngoài ra đã thêm chức năng giới hạn lại tổng số phòng của chung cư , code đang để giới hạn 379 phòng  , nhập số phòng quá 379 -> fail
-- Do 1 phòng chỉ đc 1 tk nên đã có thêm chức năng chủ hộ bấm xem chi tiết thông tin nhân khẩu và cả admin cũng thế tuy nhiên phía admin sẽ ko xem đc số cccd/cmnd , vẫn giữ tính năng thêm nhân khẩu bên admin vì thực tế có trường hợp chủ hộ ko thể tự hoàn thành bước này :)))
-- bảo đang sửa phần thanh toán, chỉ có admin mới được thay đổi trạng thái thanh toán, hiện đnag bị lỗi phần đổi từ trạng thái thanh toán từ đã thành công về chưa thanh toán còn chiều ngược lại thì đã ok, hình như nó thiéu 1 cái hàm  và trong console thì đang bị lỗi phần này manager_dashboard.html:1 Uncaught ReferenceError: changeInvoiceStatus is not defined
-    at HTMLSelectElement.onchange (manager_dashboard.html:1:1)
-  hết token rồi chiều bảo sửa tiếp ( đã fix xong )
-- bảo đã sửa một số cái link nhúng và giao diện của một số phần 
+4. Các chức năng cần update: các chức năng trên đã ok giờ đến với một số cái cần update
+   - khi một hộ giả sử là hộ A đang ở căn 105 đã được báo chuyển đi thì khi cấp hộ khẩu lại cho một hộ B vào căn 105 thì server đang báo lỗi -> nguyên nhân là bảng Households của database số phòng hay một cột nào đã để UNIQUE
+   - chức năng phát hành nên chuyển sang tự động -> ấn một nút là phát hành hóa đơn cho tất cả các hộ đang dùng dịch vụ trong tháng XX của năm XXXX 
+   - tính năng khai báo tạm trú thì không cần phải là người có trong nhân khẩu(CCCD là người ngoài hộ) 
+   - phi vận hành chung cư nên mặc định luôn. VD mặc định một căn tầm 100m2 -> phí vận hành chung cư mà mỗi hộ cần đóng tầm 200.000 VND -> không cần bắt cư dân phải đăng kí dịch vụ này thủ công -> khi phát hành hóa đơn thì cộng thêm 200k VND vào tổng tiền
+   - ở chức năng Thống kê Dịch vụ đang sử dụng t nghĩ nên làm giống như chức năng Danh Sách Hộ Khẩu Hiện Tại -> hiện các hộ sau đó ấn vào hộ nào thì hiện ra dịch vụ hộ đó đang dùng và đã dùng. Ở đây nên thêm ngày kết thúc dịch vụ -> sau khi qua ngày kết thúc thì chuyển sang trạng thái đã dùng
