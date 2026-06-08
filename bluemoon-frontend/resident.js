@@ -1,3 +1,15 @@
+
+// =========================================================================
+// TỰ ĐỘNG ĐỔI CÂU CHÀO THÀNH TÊN RIÊNG CỦA CƯ DÂN
+// =========================================================================
+document.addEventListener("DOMContentLoaded", () => {
+    const storedOwnerName = localStorage.getItem('bluemoon_owner_name');
+    const nameElement = document.getElementById('residentName');
+    
+    if (storedOwnerName && nameElement) {
+        nameElement.textContent = storedOwnerName;
+    }
+});
 // =========================================================================
 // 1. KIỂM TRA BẢO MẬT KHI VỪA MỞ TRANG
 // =========================================================================
@@ -477,6 +489,7 @@ fetchAnnouncements();
 document.getElementById('btnLogout').addEventListener('click', function() {
     localStorage.removeItem('bluemoon_token');
     localStorage.removeItem('bluemoon_role');
+    localStorage.removeItem('bluemoon_owner_name'); // <-- BỔ SUNG DÒNG NÀY Ở ĐÂY
     window.location.href = 'index.html';
 });
 
