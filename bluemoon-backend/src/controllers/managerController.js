@@ -507,6 +507,76 @@ const updateInvoiceStatus = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+// API: Lấy toàn bộ lịch sử khai báo tạm trú/tạm vắng của một phòng cụ thể
+const getDeclarationHistoryByRoom = async (req, res) => {
+    try {
+        const { roomNumber } = req.params;
+        const request = new sql.Request();
+
+        const result = await request
+            .input('Room_Number', sql.VarChar, roomNumber)
+            .query(`
+                SELECT 
+                    d.Declaration_ID,
+                    d.Declaration_Type,
+                    d.Start_Date,
+                    d.End_Date,
+                    d.Reason,
+                    d.Status,
+                    r.Full_Name,
+                    r.Identity_Card,
+                    h.Room_Number
+                FROM Declarations d
+                JOIN Residents r ON d.Resident_ID = r.Resident_ID
+                JOIN Households h ON r.Household_ID = h.Household_ID
+                WHERE h.Room_Number = @Room_Number
+                ORDER BY d.Declaration_ID DESC
+            `);
+
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        console.error("LỖI LẤY LỊCH SỬ KHAI BÁO:", error.message);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng của tất cả các hộ dân
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng (Đã sửa lỗi cấu trúc cột)
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng (Đã đồng bộ chuẩn tên cột DB)
+// API: Lấy TOÀN BỘ lịch sử khai báo tạm trú/tạm vắng (Chuẩn đét cấu trúc DB)
+const getAllDeclarationHistory = async (req, res) => {
+    try {
+        const request = new sql.Request();
+        
+        const result = await request.query(`
+            SELECT 
+                d.Declaration_ID,
+                d.Declaration_Type,
+                d.Start_Date,
+                d.End_Date,
+                d.Reason,
+                d.Status,
+                r.Full_Name,
+                r.Identity_Card,
+                h.Room_Number
+            FROM Declarations d
+            JOIN Residents r ON d.Resident_ID = r.Resident_ID
+            JOIN Households h ON r.Household_ID = h.Household_ID
+            ORDER BY d.Declaration_ID DESC
+        `);
+        
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        console.error("❌ LỖI TRUY VẤN SQL:", error.message);
+        res.status(500).json({ message: 'Lỗi server khi truy vấn SQL', error: error.message });
+    }
+};
+
+// Nhớ thêm getAllDeclarationHistory vào module.exports ở cuối file nhé!
+
+// Nhớ thêm getDeclarationHistoryByRoom vào module.exports cuối file nhé!
 
 // NHỚ BỔ SUNG updateInvoiceStatus VÀO module.exports Ở CUỐI FILE NHÉ!
 
@@ -535,5 +605,7 @@ module.exports = {
     updateServicePrice,
     deleteServiceType,
     getResidentsByHousehold,
-    updateInvoiceStatus
+    updateInvoiceStatus,
+    getDeclarationHistoryByRoom,
+    getAllDeclarationHistory
 };

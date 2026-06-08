@@ -27,9 +27,11 @@ router.put('/invoice/:id/pay', managerController.payInvoice);
 router.put('/invoice/:id/status', managerController.updateInvoiceStatus);
 
 // ĐƯỜNG DẪN KHAI BÁO TẠM TRÚ / TẠM VẮNG
+// ✅ Route cụ thể phải đứng TRÊN CÙNG trước
+router.get('/declarations/all-history', managerController.getAllDeclarationHistory);
+router.get('/declarations/history/:roomNumber', managerController.getDeclarationHistoryByRoom); // ← THÊM DÒNG NÀY
 router.get('/declarations', managerController.getPendingDeclarations);
 router.put('/declaration/:id', managerController.updateDeclarationStatus);
-
 // TÍNH NĂNG ĐẶT LỊCH TIỆN ÍCH
 router.get('/facility-bookings', managerController.getPendingFacilityBookings);
 router.put('/facility-booking/:id', managerController.updateFacilityBookingStatus);
