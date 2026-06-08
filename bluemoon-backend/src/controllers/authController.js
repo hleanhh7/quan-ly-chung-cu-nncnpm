@@ -74,24 +74,27 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin!' });
         }
 
-        // 1. Tìm tài khoản trong DB
+        // 1. Tìm tài khoản trong DB kết hợp lấy tên chủ hộ từ bảng Households
         const request = new sql.Request();
         const userResult = await request
             .input('Username', sql.VarChar, inputUsername)
-            .query('SELECT * FROM Accounts WHERE Username = @Username');
+            .query(`
+                SELECT a.*, h.Owner_Name 
+                FROM Accounts a
+                LEFT JOIN Households h ON a.Household_ID = h.Household_ID
+                WHERE a.Username = @Username
+            `);
 
         const user = userResult.recordset[0];
         if (!user) {
             return res.status(401).json({ message: 'Sai tên đăng nhập hoặc mật khẩu!' });
         }
 
-        // 2. CƠ CHẾ LINH HOẠT: Chấp nhận mật khẩu '123456' trực tiếp hoặc chuỗi khớp nhau
-        // Nếu bạn gõ đúng mật khẩu test là 123456, hệ thống cho qua luôn để test tính năng dịch vụ
+        // 2. Kiểm tra mật khẩu
         let isMatch = false;
         if (inputPassword === user.Password_Hash) {
             isMatch = true;
         } else {
-            // Nếu không phải 123456, thử dùng thư viện so khớp lại lần cuối
             try {
                 isMatch = await bcrypt.compare(inputPassword, user.Password_Hash);
             } catch (e) {
@@ -113,13 +116,20 @@ const login = async (req, res) => {
             { expiresIn: '1d' } 
         );
 
+        // Định dạng tên hiển thị công khai
+        const displayName = user.Role === 'Manager' ? 'Ban Quản Lý' : (user.Owner_Name || user.Username);
+
+        // 4. Trả dữ liệu về cho Frontend (Có ownerName ở tầng ngoài cùng)
         res.status(200).json({
             message: 'Đăng nhập thành công!',
             token,
+            role: user.Role, 
+            ownerName: displayName, 
             user: { 
                 username: user.Username, 
                 role: user.Role, 
-                householdId: user.Household_ID 
+                householdId: user.Household_ID,
+                ownerName: displayName
             }
         });
     } catch (error) {
