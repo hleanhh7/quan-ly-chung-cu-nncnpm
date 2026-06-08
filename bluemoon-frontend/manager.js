@@ -334,7 +334,21 @@ async function fetchDeclarations() {
                 const start = dec.Start_Date ? new Date(dec.Start_Date).toLocaleDateString('vi-VN') : '';
                 const end = dec.End_Date ? new Date(dec.End_Date).toLocaleDateString('vi-VN') : '';
                 const loai = dec.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
-                tbody.innerHTML += `<tr><td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${dec.Room_Number}</td><td style="padding: 10px; border: 1px solid #ddd;">${dec.Full_Name}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${loai}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${start} - ${end}</td><td style="padding: 10px; border: 1px solid #ddd;">${dec.Reason}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><button onclick="updateDeclaration(${dec.Declaration_ID}, 'Đã duyệt')" style="background-color: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Duyệt</button> <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Từ chối')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button></td></tr>`;
+                
+                // CHÈN NÚT BUTTON LỊCH SỬ VÀO ĐÂY (Truyền số phòng dec.Room_Number vào hàm moModalLichSuKhaiBao)
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${dec.Room_Number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${dec.Full_Name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${loai}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${start} - ${end}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${dec.Reason}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Đã duyệt')" style="background-color: #2ecc71; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Duyệt</button> 
+                            <button onclick="updateDeclaration(${dec.Declaration_ID}, 'Từ chối')" style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Từ chối</button>
+                            <button onclick="moModalLichSuKhaiBao('${dec.Room_Number}')" style="background-color: #16a085; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold; margin-left: 5px;">📜 Lịch sử</button>
+                        </td>
+                    </tr>`;
             });
         }
     } catch (error) { console.error('Lỗi:', error); }
@@ -348,7 +362,67 @@ window.updateDeclaration = async function(id, status) {
     } catch (error) { console.error('Lỗi:', error); }
 };
 
-async function fetchAllRegisteredServices() {
+// =====================================================================
+// BỔ SUNG THÊM: HÀM MỞ VÀ TẢI LỊCH SỬ KHAI BÁO CỦA PHÒNG LÊN POPUP MODAL
+// =====================================================================
+async function moModalLichSuKhaiBao(roomNumber) {
+    document.getElementById('historyRoomTitle').innerText = roomNumber;
+    document.getElementById('modalDeclarationHistory').style.display = 'block';
+    
+    const tbody = document.getElementById('historyDeclarationTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;">Đang tải dữ liệu...</td></tr>';
+
+    try {
+        // Gọi API bóc tách lịch sử theo số phòng
+        const response = await fetch(`${API_BASE}/declarations/history/${roomNumber}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Không thể lấy lịch sử');
+        const list = await response.json();
+
+        tbody.innerHTML = '';
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #7f8c8d;">Phòng này chưa có dữ liệu lịch sử khai báo.</td></tr>';
+            return;
+        }
+
+        list.forEach(item => {
+            // Đổ dữ liệu tình trạng kèm nhãn màu
+            let statusBadge = '';
+            if (item.Status === 'Đã duyệt') {
+                statusBadge = `<span style="color: #27ae60; background: #d4edda; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Đã duyệt</span>`;
+            } else if (item.Status === 'Từ chối') {
+                statusBadge = `<span style="color: #c0392b; background: #f8d7da; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Từ chối</span>`;
+            } else {
+                statusBadge = `<span style="color: #f39c12; background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Chờ xử lý</span>`;
+            }
+
+            const tuNgay = item.Start_Date ? new Date(item.Start_Date).toLocaleDateString('vi-VN') : '...';
+            const denNgay = item.End_Date ? new Date(item.End_Date).toLocaleDateString('vi-VN') : '...';
+            const loaiDon = item.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
+
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${loaiDon}</td>
+                    <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
+                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
+                    <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+    } catch (error) {
+        console.error('Lỗi tải lịch sử:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #e74c3c; padding: 15px;">Không kết nối được API máy chủ lịch sử!</td></tr>';
+    }
+}
+
+// BỔ SUNG THÊM: HÀM ĐÓNG CỬA SỔ POPUP MODAL
+function dongModalLichSuKhaiBao() {
+    document.getElementById('modalDeclarationHistory').style.display = 'none';
+}async function fetchAllRegisteredServices() {
     try {
         const response = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` } });
         const services = await response.json();
@@ -671,6 +745,151 @@ window.changeInvoiceStatus = async function(invoiceId, selectElement) {
         alert('❌ Không thể kết nối tới Server!');
     }
 };
+
+// =====================================================================
+// TÍNH NĂNG MỚI: MỞ CỬA SỔ XEM LỊCH SỬ KHAI BÁO CỦA HỘ DÂN
+// =====================================================================
+async function moModalLichSuKhaiBao(roomNumber) {
+    document.getElementById('historyRoomTitle').innerText = roomNumber;
+    document.getElementById('modalDeclarationHistory').style.display = 'block';
+    
+    const tbody = document.getElementById('historyDeclarationTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;">Đang tải dữ liệu...</td></tr>';
+
+    try {
+        const response = await fetch(`${API_BASE}/declarations/history/${roomNumber}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Không thể lấy lịch sử');
+        const list = await response.json();
+
+        tbody.innerHTML = '';
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #7f8c8d;">Hộ gia đình này chưa có lịch sử khai báo nào.</td></tr>';
+            return;
+        }
+
+        list.forEach(item => {
+            // Định dạng trạng thái Đã duyệt / Từ chối / Chờ xử lý kèm màu sắc tương ứng
+            let statusBadge = '';
+            if (item.Status === 'Đã duyệt' || item.status === 'Approved') {
+                statusBadge = `<span style="color: #27ae60; background: #d4edda; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Đã duyệt</span>`;
+            } else if (item.Status === 'Từ chối' || item.status === 'Rejected') {
+                statusBadge = `<span style="color: #c0392b; background: #f8d7da; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Từ chối</span>`;
+            } else {
+                statusBadge = `<span style="color: #f39c12; background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Chờ xử lý</span>`;
+            }
+
+            // Định dạng ngày hiển thị (cắt chuỗi lấy phần yyyy-mm-dd)
+            const tuNgay = item.Start_Date ? item.Start_Date.substring(0, 10) : '...';
+            const denNgay = item.End_Date ? item.End_Date.substring(0, 10) : '...';
+
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${item.Declaration_Type}</td>
+                    <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
+                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
+                    <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+    } catch (error) {
+        console.error('Lỗi tải lịch sử khai báo:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #e74c3c; padding: 15px;">Lỗi kết nối máy chủ không thể tải dữ liệu!</td></tr>';
+    }
+}
+
+// HÀM ĐÓNG CỬA SỔ POPUP
+function dongModalLichSuKhaiBao() {
+    document.getElementById('modalDeclarationHistory').style.display = 'none';
+}
+
+// =====================================================================
+// 1. HÀM MỞ LỊCH SỬ CỦA RIÊNG 1 PHÒNG (Nút ở từng dòng)
+// =====================================================================
+async function moModalLichSuKhaiBao(roomNumber) {
+    document.getElementById('historyRoomTitle').innerText = "Phòng " + roomNumber;
+    document.getElementById('historyRoomTitle').style.color = "#e67e22";
+    document.getElementById('modalDeclarationHistory').style.display = 'block';
+    
+    // Gọi API lấy dữ liệu của 1 phòng
+    taiDuLieuLichSuKhaiBao(`${API_BASE}/declarations/history/${roomNumber}`);
+}
+
+// =====================================================================
+// 2. HÀM MỞ LỊCH SỬ TỔNG TOÀN BỘ CHUNG CƯ (Nút xanh trên cùng)
+// =====================================================================
+async function moModalTongLichSuKhaiBao() {
+    document.getElementById('historyRoomTitle').innerText = "Toàn Bộ Chung Cư";
+    document.getElementById('historyRoomTitle').style.color = "#e74c3c";
+    document.getElementById('modalDeclarationHistory').style.display = 'block';
+    
+    // Gọi API lấy dữ liệu tất cả các phòng
+    taiDuLieuLichSuKhaiBao(`${API_BASE}/declarations/all-history`);
+}
+
+// =====================================================================
+// 3. HÀM XỬ LÝ CHUNG: FETCH DỮ LIỆU VÀ ĐỔ VÀO BẢNG
+// =====================================================================
+async function taiDuLieuLichSuKhaiBao(apiUrl) {
+    const tbody = document.getElementById('historyDeclarationTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 15px;">Đang tải dữ liệu...</td></tr>';
+
+    try {
+        const response = await fetch(apiUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Không thể kết nối API');
+        const list = await response.json();
+
+        tbody.innerHTML = '';
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 15px; color: #7f8c8d;">Chưa có dữ liệu lịch sử khai báo.</td></tr>';
+            return;
+        }
+
+        list.forEach(item => {
+            // Định dạng màu sắc trạng thái
+            let statusBadge = '';
+            if (item.Status === 'Đã duyệt') {
+                statusBadge = `<span style="color: #27ae60; background: #d4edda; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Đã duyệt</span>`;
+            } else if (item.Status === 'Từ chối') {
+                statusBadge = `<span style="color: #c0392b; background: #f8d7da; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Từ chối</span>`;
+            } else {
+                statusBadge = `<span style="color: #f39c12; background: #fff3cd; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Chờ xử lý</span>`;
+            }
+
+            const tuNgay = item.Start_Date ? new Date(item.Start_Date).toLocaleDateString('vi-VN') : '...';
+            const denNgay = item.End_Date ? new Date(item.End_Date).toLocaleDateString('vi-VN') : '...';
+            const loaiDon = item.Declaration_Type === 'TamTru' ? 'Tạm trú' : 'Tạm vắng';
+
+            // In dòng dữ liệu
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #e67e22;">${item.Room_Number}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${loaiDon}</td>
+                    <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
+                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
+                    <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+    } catch (error) {
+        console.error('Lỗi tải lịch sử:', error);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #e74c3c; padding: 15px;">Lỗi máy chủ: Vui lòng bật lại Backend (npm run dev)!</td></tr>';
+    }
+}
+
+// HÀM ĐÓNG POPUP MODAL
+function dongModalLichSuKhaiBao() {
+    document.getElementById('modalDeclarationHistory').style.display = 'none';
+}
 
 // ==================================================
 // 4. KÍCH HOẠT TẢI DỮ LIỆU KHI VỪA MỞ TRANG

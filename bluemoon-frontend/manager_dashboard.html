@@ -174,9 +174,15 @@
                     <button type="submit" class="btn-submit">Thêm Nhân Khẩu</button>
                 </form>
             </div>
-
-            <div class="card full-width">
-                <h3>Đơn tạm trú tạm vắng chờ duyệt</h3>
+            
+<div class="card full-width">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eef2f5; padding-bottom: 10px;">
+                    <h3 style="color: #2c3e50; margin: 0; font-size: 18px;">📋 Đơn tạm trú tạm vắng chờ duyệt</h3>
+                    
+                    <button onclick="moModalTongLichSuKhaiBao()" style="background-color: #2980b9; color: white; border: none; padding: 10px 18px; cursor: pointer; border-radius: 8px; font-weight: bold; font-size: 13.5px; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(41, 128, 185, 0.2);">
+                        📜 Xem Toàn Bộ Lịch Sử Khai Báo
+                    </button>
+                </div>
                 <table>
                     <tbody id="declarationTableBody"><tr><td colspan="6" style="text-align: center;">Chưa có đơn mới...</td></tr></tbody>
                 </table>
@@ -311,6 +317,33 @@
             
             <div style="text-align: right; margin-top: 25px;">
                 <button onclick="dongModalNhanKhau()" style="background:#95a5a6; color:white; padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-weight: bold;">Đóng cửa sổ</button>
+            </div>
+        </div>
+    </div>
+    
+<div id="modalDeclarationHistory" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s;">
+        <div style="background: #fff; margin: 80px auto; padding: 25px; border-radius: 12px; width: 70%; box-shadow: 0 5px 25px rgba(0,0,0,0.3); border-top: 5px solid #2980b9; position: relative;">
+            
+            <span onclick="dongModalLichSuKhaiBao()" style="position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer;">&times;</span>
+            
+            <h3 style="color: #2980b9; margin-top: 0; font-size: 20px;">📜 Nhật Ký Lịch Sử Khai Báo - <span id="historyRoomTitle" style="color: #e67e22;">...</span></h3>
+            
+            <div style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #2980b9; color: white;">
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Phòng</th>
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Loại đơn</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Họ tên</th>
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">CCCD</th>
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Từ ngày - Đến ngày</th>
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Tình trạng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyDeclarationTableBody">
+                        <tr><td colspan="6" style="text-align: center; color: #7f8c8d; padding: 15px;">Đang tải lịch sử...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
