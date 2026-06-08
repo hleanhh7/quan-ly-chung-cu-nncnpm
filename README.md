@@ -155,4 +155,7 @@ lưu ý, hiện nhớ check frontend để biết những chức năng hiện đ
 - khi cư dân đăng kí dịch vụ, bên bql không nhận được danh sách để duyệt và bên cư dân, sau khi duyệt thì nên tự động tạo hóa đơn luôn chứ không cần phải có chức năng phát hành hóa đơn ( đã fix , ngoài ra vẫn giữ nguyên chức năng tạo hóa đơn thủ công cho trường hợp phí phát sinh )
 - Ngoài ra đã thêm chức năng giới hạn lại tổng số phòng của chung cư , code đang để giới hạn 379 phòng  , nhập số phòng quá 379 -> fail
 - Do 1 phòng chỉ đc 1 tk nên đã có thêm chức năng chủ hộ bấm xem chi tiết thông tin nhân khẩu và cả admin cũng thế tuy nhiên phía admin sẽ ko xem đc số cccd/cmnd , vẫn giữ tính năng thêm nhân khẩu bên admin vì thực tế có trường hợp chủ hộ ko thể tự hoàn thành bước này :)))
-- 
+- bảo đang sửa phần thanh toán, chỉ có admin mới được thay đổi trạng thái thanh toán, hiện đnag bị lỗi phần đổi từ trạng thái thanh toán từ đã thành công về chưa thanh toán còn chiều ngược lại thì đã ok, hình như nó thiéu 1 cái hàm  và trong console thì đang bị lỗi phần này manager_dashboard.html:1 Uncaught ReferenceError: changeInvoiceStatus is not defined
+    at HTMLSelectElement.onchange (manager_dashboard.html:1:1)
+  hết token rồi chiều bảo sửa tiếp
+- bảo đã sửa một số cái link nhúng và giao diện của một số phần 
