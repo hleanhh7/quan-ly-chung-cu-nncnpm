@@ -149,8 +149,8 @@ lưu ý, hiện nhớ check frontend để biết những chức năng hiện đ
    ┗ 📜 resident.js             # Logic Javascript, Fetch API tương tác phân hệ Cư dân
 ```
 4. Các chức năng cần update: các chức năng trên đã ok giờ đến với một số cái cần update
-   - khi một hộ giả sử là hộ A đang ở căn 105 đã được báo chuyển đi thì khi cấp hộ khẩu lại cho một hộ B vào căn 105 thì server đang báo lỗi -> nguyên nhân là bảng Households của database số phòng hay một cột nào đã để UNIQUE ( da fix ) 
+   - khi một hộ giả sử là hộ A đang ở căn 105 đã được báo chuyển đi thì khi cấp hộ khẩu lại cho một hộ B vào căn 105 thì server đang báo lỗi -> nguyên nhân là bảng Households của database số phòng hay một cột nào đã để UNIQUE ( đã fix )
    - chức năng phát hành nên chuyển sang tự động -> ấn một nút là phát hành hóa đơn cho tất cả các hộ đang dùng dịch vụ trong tháng XX của năm XXXX 
    - tính năng khai báo tạm trú thì không cần phải là người có trong nhân khẩu(CCCD là người ngoài hộ) 
    - phi vận hành chung cư nên mặc định luôn. VD mặc định một căn tầm 100m2 -> phí vận hành chung cư mà mỗi hộ cần đóng tầm 200.000 VND -> không cần bắt cư dân phải đăng kí dịch vụ này thủ công -> khi phát hành hóa đơn thì cộng thêm 200k VND vào tổng tiền
-   - ở chức năng Thống kê Dịch vụ đang sử dụng t nghĩ nên làm giống như chức năng Danh Sách Hộ Khẩu Hiện Tại -> hiện các hộ sau đó ấn vào hộ nào thì hiện ra dịch vụ hộ đó đang dùng và đã dùng. Ở đây nên thêm ngày kết thúc dịch vụ -> sau khi qua ngày kết thúc thì chuyển sang trạng thái đã dùng
+   - ở chức năng Thống kê Dịch vụ đang sử dụng t nghĩ nên làm giống như chức năng Danh Sách Hộ Khẩu Hiện Tại -> hiện các hộ sau đó ấn vào hộ nào thì hiện ra dịch vụ hộ đó đang dùng và đã dùng. Ở đây nên thêm ngày kết thúc dịch vụ -> sau khi qua ngày kết thúc thì chuyển sang trạng thái đã dùng ( đã fix )
