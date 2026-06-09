@@ -160,6 +160,8 @@ async function fetchAllInvoices() {
     try {
         const response = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` } });
         const invoices = await response.json();
+
+        invoices.sort((a, b) => String(a.Room_Number).localeCompare(String(b.Room_Number), undefined, { numeric: true }));
         const tbody = document.getElementById('allInvoicesTableBody');
         if(!tbody) return;
         
@@ -247,7 +249,7 @@ async function fetchHouseholds() {
     try {
         const response = await fetch(`${API_BASE}/households`, { headers: { 'Authorization': `Bearer ${token}` } });
         const households = await response.json();
-        
+        households.sort((a, b) => String(a.Room_Number).localeCompare(String(b.Room_Number), undefined, { numeric: true }));
         const tbodyActive = document.getElementById('householdTableBody');
         const tbodyHistory = document.getElementById('moveOutHistoryBody');
         if(!tbodyActive || !tbodyHistory) return;
@@ -383,7 +385,7 @@ async function moModalLichSuKhaiBao(roomNumber) {
 
         tbody.innerHTML = '';
         if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: #7f8c8d;">Phòng này chưa có dữ liệu lịch sử khai báo.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 15px; color: #7f8c8d;">Phòng này chưa có dữ liệu lịch sử khai báo.</td></tr>';
             return;
         }
 
@@ -406,7 +408,6 @@ async function moModalLichSuKhaiBao(roomNumber) {
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${loaiDon}</td>
                     <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
-                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
                     <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
                     <td style="padding: 12px; text-align: center;">${statusBadge}</td>
                 </tr>
@@ -422,23 +423,91 @@ async function moModalLichSuKhaiBao(roomNumber) {
 // BỔ SUNG THÊM: HÀM ĐÓNG CỬA SỔ POPUP MODAL
 function dongModalLichSuKhaiBao() {
     document.getElementById('modalDeclarationHistory').style.display = 'none';
-}async function fetchAllRegisteredServices() {
+}
+
+// =======================================================================
+// QUẢN LÝ DỊCH VỤ (Gom nhóm theo phòng & Xem chi tiết)
+// =======================================================================
+
+// Biến toàn cục để lưu kho dữ liệu tạm thời
+window.khoDichVuTam = [];
+
+async function fetchAllRegisteredServices() {
     try {
         const response = await fetch(`${API_BASE}/registered-services`, { headers: { 'Authorization': `Bearer ${token}` } });
         const services = await response.json();
         const tbody = document.getElementById('allServicesTableBody');
         if (!tbody) return;
+
+        // Lưu dữ liệu nguyên bản vào kho để lát nữa Modal lấy ra dùng
+        window.khoDichVuTam = services;
         tbody.innerHTML = '';
+
         if (services.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có dịch vụ đăng ký.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có dịch vụ đăng ký.</td></tr>';
         } else {
+            // 1. THUẬT TOÁN GOM NHÓM THEO SỐ PHÒNG
+            const groupedServices = {};
             services.forEach(svc => {
-                const startDate = svc.Start_Date ? new Date(svc.Start_Date).toLocaleDateString('vi-VN') : '';
-                tbody.innerHTML += `<tr><td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${svc.Room_Number}</td><td style="padding: 10px; border: 1px solid #ddd;">${svc.Service_Name}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${svc.Quantity}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate}</td><td style="padding: 10px; border: 1px solid #ddd; text-align: right; color: #e67e22; font-weight: bold;">${Number(svc.Estimated_Cost).toLocaleString('vi-VN')} đ</td></tr>`;
+                const room = svc.Room_Number;
+                if (!groupedServices[room]) {
+                    groupedServices[room] = { totalTypes: 0, totalCost: 0 };
+                }
+                groupedServices[room].totalTypes += 1;
+                groupedServices[room].totalCost += (svc.Estimated_Cost || 0);
             });
+
+            // 2. VẼ RA BẢNG TỔNG HỢP GỌN GÀNG (Kết hợp luôn cả Sort tăng dần nhé)
+            Object.keys(groupedServices)
+                .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
+                .forEach(room => {
+                    const data = groupedServices[room];
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #8e44ad; font-size: 16px;">${room}</td>
+                            
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${data.totalTypes} loại dịch vụ</td>
+                            
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; color: #e67e22; font-weight: bold;">${Number(data.totalCost).toLocaleString('vi-VN')} đ</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <button onclick="moModalDichVu('${room}')" style="background-color: #3498db; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">👁️ Xem Danh Sách</button>
+                            </td>
+                        </tr>
+                    `;
+                });
         }
-    } catch (error) { console.error('Lỗi tải:', error); }
+    } catch (error) { console.error('Lỗi tải danh sách dịch vụ:', error); }
 }
+
+// 3. HÀM MỞ MODAL VÀ LỌC DỮ LIỆU
+window.moModalDichVu = function(roomNumber) {
+    document.getElementById('mdv_roomNumber').innerText = roomNumber;
+    const tbody = document.getElementById('mdv_tbody');
+    tbody.innerHTML = '';
+
+    // Lọc ra các dịch vụ thuộc đúng cái phòng vừa click
+    const dichVuCuaPhong = window.khoDichVuTam.filter(svc => svc.Room_Number == roomNumber);
+
+    dichVuCuaPhong.forEach(svc => {
+        const startDate = svc.Start_Date ? new Date(svc.Start_Date).toLocaleDateString('vi-VN') : '';
+        tbody.innerHTML += `
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #2c3e50;">${svc.Service_Name}</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${svc.Quantity || 1}</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${startDate}</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: right; color: #c0392b; font-weight: bold;">${Number(svc.Estimated_Cost).toLocaleString('vi-VN')} đ</td>
+            </tr>
+        `;
+    });
+
+    // Hiển thị Modal
+    document.getElementById('modalDichVu').style.display = 'block';
+};
+
+// 4. HÀM ĐÓNG MODAL
+window.dongModalDichVu = function() {
+    document.getElementById('modalDichVu').style.display = 'none';
+};
 
 async function fetchServiceRequests() {
     try {
@@ -789,7 +858,6 @@ async function moModalLichSuKhaiBao(roomNumber) {
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${item.Declaration_Type}</td>
                     <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
-                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
                     <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
                     <td style="padding: 12px; text-align: center;">${statusBadge}</td>
                 </tr>
@@ -873,7 +941,6 @@ async function taiDuLieuLichSuKhaiBao(apiUrl) {
                     <td style="padding: 12px; text-align: center; font-weight: bold; color: #e67e22;">${item.Room_Number}</td>
                     <td style="padding: 12px; text-align: center; font-weight: bold; color: #2980b9;">${loaiDon}</td>
                     <td style="padding: 12px; text-align: left;">${item.Full_Name}</td>
-                    <td style="padding: 12px; text-align: center; color: #7f8c8d;">${item.Identity_Card || '...'}</td>
                     <td style="padding: 12px; text-align: center; font-size: 13px;">${tuNgay} ➔ ${denNgay}</td>
                     <td style="padding: 12px; text-align: center;">${statusBadge}</td>
                 </tr>

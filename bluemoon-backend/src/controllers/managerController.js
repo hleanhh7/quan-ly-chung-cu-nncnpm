@@ -53,18 +53,22 @@ const createHousehold = async (req, res) => {
         // Hứng lấy cái ID vừa được SQL cấp
         const newHouseholdId = insertHousehold.recordset[0].Household_ID;
 
-        // 6. TẠO TÀI KHOẢN GẮN VỚI ID ĐÓ LUÔN
+        // 6. TẠO TÀI KHOẢN GẮN VỚI ID ĐÓ LUÔN (Đã tích hợp Bcrypt để khớp với hàm Login)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(Password, salt); // Mã hóa 123456 thành chuỗi loằng ngoằng
+
         const accountReq = new sql.Request();
         await accountReq
             .input('Household_ID', sql.Int, newHouseholdId)
             .input('Acc_Username', sql.VarChar, Username)
-            .input('Acc_Password', sql.VarChar, Password) // Lưu ý: Cột trong DB của bạn là Password hay Password_Hash thì sửa lại cho khớp nhé
+            .input('Acc_Password', sql.VarChar, hashedPassword) 
             .query(`
                 INSERT INTO Accounts (Username, Password_Hash, Role, Household_ID) 
                 VALUES (@Acc_Username, @Acc_Password, 'Resident', @Household_ID)
             `);
 
         res.status(201).json({ message: '🎉 Đã tạo Hộ khẩu và Cấp tài khoản Cư dân thành công!' });
+        
     } catch (error) { 
         console.error("Lỗi tạo hộ khẩu & tài khoản:", error);
         res.status(500).json({ message: 'Lỗi server', error: error.message }); 

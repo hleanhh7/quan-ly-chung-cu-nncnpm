@@ -194,10 +194,18 @@
         <div class="container">
             <div class="card full-width">
                 <h3>Thống kê Dịch vụ đang sử dụng</h3>
-                <table>
-                    <thead><tr style="background-color: #34495e; color: white;"><th>Phòng</th><th>Dịch vụ</th><th>SL</th><th>Ngày BĐ</th><th>Tạm tính (VNĐ/Tháng)</th></tr></thead>
-                    <tbody id="allServicesTableBody"><tr><td colspan="5">Đang tải...</td></tr></tbody>
-                </table>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr style="background-color: #34495e; color: white;">
+            <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Tổng dịch vụ đang dùng</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Tổng phí tạm tính</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Chi tiết</th>
+        </tr>
+    </thead>
+    <tbody id="allServicesTableBody">
+        </tbody>
+</table>
             </div>
 
             <div class="card full-width">
@@ -335,7 +343,6 @@
                             <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Phòng</th>
                             <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Loại đơn</th>
                             <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Họ tên</th>
-                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">CCCD</th>
                             <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Từ ngày - Đến ngày</th>
                             <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Tình trạng</th>
                         </tr>
@@ -347,5 +354,28 @@
             </div>
         </div>
     </div>
+
+    <div id="modalDichVu" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;">
+    <div style="background:white; width:600px; margin: 100px auto; padding:25px; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+        <h3 style="color:#2980b9; margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">
+            🛒 Chi tiết dịch vụ - Phòng <span id="mdv_roomNumber" style="color:#e74c3c;"></span>
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tên Dịch Vụ</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">SL</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Ngày BĐ</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody id="mdv_tbody">
+                </tbody>
+        </table>
+        <div style="text-align: right; margin-top: 20px;">
+            <button onclick="dongModalDichVu()" style="background:#95a5a6; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Đóng lại</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
