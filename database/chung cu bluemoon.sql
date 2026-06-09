@@ -212,3 +212,7 @@ CREATE TABLE FacilityBookings (
     FOREIGN KEY (Household_ID) REFERENCES Households(Household_ID)
 );
 GO
+
+-- Gỡ bỏ rào cản cấm nhập trùng số phòng
+ALTER TABLE Households 
+DROP CONSTRAINT UQ__Househol__353A906F5A79FE43;
