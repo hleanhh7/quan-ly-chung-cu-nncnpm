@@ -89,14 +89,19 @@
             
             <div class="card full-width">
                 <h3>Theo Dõi Hóa Đơn & Thu Tiền</h3>
-                <table>
-                    <thead>
-                        <tr style="background-color: #27ae60; color: white;">
-                            <th>Phòng</th><th>Kỳ thu (Tháng/Năm)</th><th>Tổng tiền</th><th>Trạng thái</th><th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="allInvoicesTableBody"><tr><td colspan="5">Đang tải danh sách hóa đơn...</td></tr></tbody>
-                </table>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr style="background-color: #27ae60; color: white;">
+            <th style="padding: 10px; border: 1px solid #ddd;">Phòng</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Tổng số Hóa đơn</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Chưa thanh toán</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Tổng Nợ (VNĐ)</th>
+            <th style="padding: 10px; border: 1px solid #ddd;">Chi tiết</th>
+        </tr>
+    </thead>
+    <tbody id="allInvoicesTableBody">
+        </tbody>
+</table>
             </div>
 
             <div class="card" style="border-top: 4px solid #f39c12;">
@@ -375,6 +380,41 @@
         <div style="text-align: right; margin-top: 20px;">
             <button onclick="dongModalDichVu()" style="background:#95a5a6; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Đóng lại</button>
         </div>
+    </div>
+</div>
+
+<div id="modalHoaDon" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;">
+    <div style="background:white; width:800px; margin: 80px auto; padding:25px; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto;">
+        
+        <h3 style="color:#27ae60; margin-top:0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">
+            🧾 Lịch sử Hóa đơn - Phòng <span id="mhd_roomNumber" style="color:#e74c3c;"></span>
+        </h3>
+
+        <div style="background-color: #f8f9fa; padding: 10px 15px; border-radius: 6px; border: 1px solid #ddd; display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            <strong style="color: #2c3e50;">🔍 Lọc nhanh:</strong>
+            <input type="number" id="filterMonth" placeholder="Tháng (VD: 6)" style="padding: 6px; width: 120px; border: 1px solid #ccc; border-radius: 4px;" min="1" max="12">
+            <input type="number" id="filterYear" placeholder="Năm (VD: 2026)" style="padding: 6px; width: 120px; border: 1px solid #ccc; border-radius: 4px;">
+            <button onclick="locHoaDonTrongModal()" style="background-color: #f39c12; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Tìm kiếm</button>
+            <button onclick="boLocHoaDon()" style="background-color: #95a5a6; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer;">Bỏ lọc</button>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Kỳ thu</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Tổng tiền</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Trạng thái</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="mhd_tbody">
+                </tbody>
+        </table>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button onclick="dongModalHoaDon()" style="background:#95a5a6; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Đóng lại</button>
+        </div>
+
     </div>
 </div>
 </body>

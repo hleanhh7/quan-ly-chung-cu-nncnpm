@@ -153,56 +153,154 @@ if (btnLogout) {
     });
 }
 
-// ==================================================
-// 3. RENDER BẢNG VÀ CHỨC NĂNG CẬP NHẬT
-// ==================================================
+// =======================================================================
+// QUẢN LÝ HÓA ĐƠN (Gom nhóm theo phòng & Popup Chi Tiết)
+// =======================================================================
+
+window.khoHoaDonTam = []; // Kho lưu dữ liệu gốc để Modal dùng
+window.phongHoaDonDangMo = null; // Ghi nhớ xem Modal nào đang mở để tự động refresh
+
 async function fetchAllInvoices() {
     try {
         const response = await fetch(`${API_BASE}/invoices`, { headers: { 'Authorization': `Bearer ${token}` } });
-        const invoices = await response.json();
-
-        invoices.sort((a, b) => String(a.Room_Number).localeCompare(String(b.Room_Number), undefined, { numeric: true }));
+        let invoices = await response.json();
         const tbody = document.getElementById('allInvoicesTableBody');
         if(!tbody) return;
-        
+
+        window.khoHoaDonTam = invoices;
         tbody.innerHTML = '';
-        
+
         if (invoices.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có hóa đơn nào.</td></tr>';
-        } else {
-            invoices.forEach(inv => {
-                // 1. Tạo menu xổ xuống (Dropdown) cho cột Trạng thái
-// 1. Tạo menu xổ xuống (Có thêm id="status-select-..." và truyền thêm inv.Total_Amount)
-                // 1. Tạo menu xổ xuống (Đã sửa lỗi truyền tham số this)
-                const statusDropdown = `
-                    <select id="status-select-${inv.Invoice_ID}" onchange="changeInvoiceStatus(${inv.Invoice_ID}, this)" 
-                            style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer;
-                                   background-color: ${inv.Payment_Status === 'Đã thanh toán' ? '#d4edda' : '#f8d7da'}; 
-                                   color: ${inv.Payment_Status === 'Đã thanh toán' ? '#155724' : '#721c24'};">
-                        <option value="Chưa thanh toán" ${inv.Payment_Status === 'Chưa thanh toán' ? 'selected' : ''}>Chưa thanh toán</option>
-                        <option value="Đã thanh toán" ${inv.Payment_Status === 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
-                    </select>
-                `;
+            return;
+        }
 
-                // 2. Nút Hành động
-                const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
-                    ? `<button onclick="moModalThuTien(${inv.Invoice_ID}, ${inv.Total_Amount})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
-                    : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
+        // 1. THUẬT TOÁN GOM NHÓM TỔNG NỢ THEO SỐ PHÒNG
+        const groupedInvoices = {};
+        invoices.forEach(inv => {
+            const room = inv.Room_Number;
+            if (!groupedInvoices[room]) {
+                groupedInvoices[room] = { totalInvoices: 0, unpaidCount: 0, totalDebt: 0 };
+            }
+            groupedInvoices[room].totalInvoices += 1;
+            
+            // Nếu chưa thanh toán thì đếm số lượng và cộng dồn tiền nợ
+            if (inv.Payment_Status === 'Chưa thanh toán') {
+                groupedInvoices[room].unpaidCount += 1;
+                groupedInvoices[room].totalDebt += (inv.Total_Amount || 0);
+            }
+        });
+
+        // 2. VẼ RA BẢNG TỔNG HỢP Ở NGOÀI MÀN HÌNH CHÍNH
+        Object.keys(groupedInvoices)
+            .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
+            .forEach(room => {
+                const data = groupedInvoices[room];
                 
-                // 3. In ra giao diện (Lưu ý: Gắn id="action-cell-..." vào cột cuối cùng)
+                // Tô màu đỏ nếu có nợ, màu xanh nếu đã đóng đủ
+                const textNo = data.totalDebt > 0 ? `<span style="color:#e74c3c; font-weight:bold;">${Number(data.totalDebt).toLocaleString('vi-VN')} đ</span>` : `<span style="color:#27ae60; font-weight:bold;">0 đ</span>`;
+                const textSlChuaDong = data.unpaidCount > 0 ? `<span style="color:#e74c3c; font-weight:bold;">${data.unpaidCount} hóa đơn</span>` : `<span style="color:#27ae60;">Đã đóng đủ</span>`;
+
                 tbody.innerHTML += `
                     <tr>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${inv.Room_Number}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${inv.Billing_Month}/${inv.Billing_Year}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${Number(inv.Total_Amount).toLocaleString('vi-VN')} đ</td>
-                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${statusDropdown}</td>
-                        <td id="action-cell-${inv.Invoice_ID}" style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #27ae60; font-size: 16px;">${room}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${data.totalInvoices}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${textSlChuaDong}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${textNo}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button onclick="moModalHoaDon('${room}')" style="background-color: #3498db; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">🧾 Xem Chi Tiết</button>
+                        </td>
                     </tr>
                 `;
             });
+
+        // NẾU MODAL ĐANG MỞ (Vừa thu tiền xong), ÉP MODAL VẼ LẠI NGAY LẬP TỨC
+        if (window.phongHoaDonDangMo) {
+            moModalHoaDon(window.phongHoaDonDangMo);
         }
+
     } catch (error) { console.error('Lỗi tải hóa đơn:', error); }
-}let currentInvoiceId = null;
+}
+
+// 3. HÀM MỞ MODAL VÀ LỌC CÁC HÓA ĐƠN CỦA PHÒNG (Đã nâng cấp để nhận thêm Tháng/Năm)
+window.moModalHoaDon = function(roomNumber, filterMonth = '', filterYear = '') {
+    window.phongHoaDonDangMo = roomNumber; // Lưu lại trạng thái đang mở
+    document.getElementById('mhd_roomNumber').innerText = roomNumber;
+    const tbody = document.getElementById('mhd_tbody');
+    tbody.innerHTML = '';
+
+    // Lấy hóa đơn của phòng này
+    let hdPhong = window.khoHoaDonTam.filter(inv => inv.Room_Number == roomNumber);
+
+    // 🚀 BỘ LỌC THÔNG MINH: Cắt bớt dữ liệu nếu Admin có gõ vào ô tìm kiếm
+    if (filterMonth) hdPhong = hdPhong.filter(inv => inv.Billing_Month == filterMonth);
+    if (filterYear) hdPhong = hdPhong.filter(inv => inv.Billing_Year == filterYear);
+
+    // Xếp từ tháng mới nhất xuống cũ nhất
+    hdPhong.sort((a, b) => {
+        if (b.Billing_Year !== a.Billing_Year) return b.Billing_Year - a.Billing_Year;
+        return b.Billing_Month - a.Billing_Month;
+    });
+
+    // Nếu lọc xong mà rỗng (không tìm thấy)
+    if (hdPhong.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#e74c3c; font-weight:bold;">❌ Không tìm thấy hóa đơn nào khớp với thời gian này!</td></tr>';
+        document.getElementById('modalHoaDon').style.display = 'block';
+        return;
+    }
+
+    // Vẽ bảng nếu có dữ liệu
+    hdPhong.forEach(inv => {
+        const statusDropdown = `
+            <select id="status-select-${inv.Invoice_ID}" onchange="changeInvoiceStatus(${inv.Invoice_ID}, this)" 
+                    style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; cursor: pointer;
+                           background-color: ${inv.Payment_Status === 'Đã thanh toán' ? '#d4edda' : '#f8d7da'}; 
+                           color: ${inv.Payment_Status === 'Đã thanh toán' ? '#155724' : '#721c24'};">
+                <option value="Chưa thanh toán" ${inv.Payment_Status === 'Chưa thanh toán' ? 'selected' : ''}>Chưa thanh toán</option>
+                <option value="Đã thanh toán" ${inv.Payment_Status === 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
+            </select>
+        `;
+
+        const actionButton = inv.Payment_Status === 'Chưa thanh toán' 
+            ? `<button onclick="moModalThuTien(${inv.Invoice_ID}, ${inv.Total_Amount})" style="background-color: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Thu tiền</button>`
+            : `<span style="color: #27ae60; font-weight: bold;">Hoàn tất</span>`;
+        
+        tbody.innerHTML += `
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight:bold;">${inv.Billing_Month}/${inv.Billing_Year}</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: right; color:#c0392b; font-weight:bold;">${Number(inv.Total_Amount).toLocaleString('vi-VN')} đ</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${statusDropdown}</td>
+                <td id="action-cell-${inv.Invoice_ID}" style="padding: 10px; border: 1px solid #ddd; text-align: center;">${actionButton}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('modalHoaDon').style.display = 'block';
+};
+
+// 4. HÀM XỬ LÝ NÚT BẤM "TÌM KIẾM" VÀ "BỎ LỌC"
+window.locHoaDonTrongModal = function() {
+    const m = document.getElementById('filterMonth').value;
+    const y = document.getElementById('filterYear').value;
+    // Tái sử dụng lại hàm mở Modal nhưng nhét thêm "Đạn" (Tháng và Năm) vào
+    moModalHoaDon(window.phongHoaDonDangMo, m, y);
+};
+
+window.boLocHoaDon = function() {
+    document.getElementById('filterMonth').value = '';
+    document.getElementById('filterYear').value = '';
+    // Mở lại trần trụi (Không có đạn) để hiện toàn bộ
+    moModalHoaDon(window.phongHoaDonDangMo);
+};
+
+// 5. HÀM ĐÓNG MODAL (Sạch sẽ ô tìm kiếm cho lần mở sau)
+window.dongModalHoaDon = function() {
+    window.phongHoaDonDangMo = null; 
+    document.getElementById('filterMonth').value = '';
+    document.getElementById('filterYear').value = '';
+    document.getElementById('modalHoaDon').style.display = 'none';
+};
+let currentInvoiceId = null;
 let currentInvoiceTotal = 0;
 
 window.moModalThuTien = function(id, total) {
